@@ -5,11 +5,27 @@ on:
   push:
     branches: [ master ]
     paths-ignore:
+      - '**.md'           # Skip on markdown changes
+      - 'LICENSE'
+      - '.gitignore'
+      - 'docs/**'         # Skip on docs directory changes
+      - '**.rst'          # Skip on reStructuredText changes
+      - '.github/workflows/release.yml'  # Skip on other workflow changes
+      - '.github/workflows/dependency-review.yml'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/lint.yml'
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
       - '**.md'
       - 'LICENSE'
       - '.gitignore'
-  pull_request:
-    branches: [ master ]
+      - 'docs/**'
+      - '**.rst'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/dependency-review.yml'
+      - '.github/workflows/codeql.yml'
+      - '.github/workflows/lint.yml'
 
 jobs:
   test:

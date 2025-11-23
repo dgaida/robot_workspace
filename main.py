@@ -8,11 +8,44 @@ This script shows how to:
 4. Serialize and deserialize objects
 """
 
+from unittest.mock import Mock
 from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
 from robot_workspace.objects.object_api import Location
+
+
+def create_mock_environment(use_simulation=False):
+    """
+    Creates a mock Environment object for demonstration purposes.
+    This allows the demo to run without requiring actual robot hardware.
+
+    Args:
+        use_simulation: If True, simulates Gazebo environment; otherwise simulates real robot
+
+    Returns:
+        Mock: A mock Environment object with necessary methods
+    """
+    env = Mock()
+    env.use_simulation.return_value = use_simulation
+    env.verbose.return_value = False
+
+    # Mock the robot target pose method for coordinate transformations
+    # This simulates how the Niryo robot transforms relative image coordinates
+    # to world coordinates
+    def mock_get_target_pose(ws_id, u_rel, v_rel, yaw):
+        # For Niryo robots:
+        # - Width goes along y-axis, height along x-axis
+        # - u_rel: 0 (top) -> 1 (bottom), x decreases
+        # - v_rel: 0 (left) -> 1 (right), y decreases
+        x = 0.4 - u_rel * 0.3  # x from 0.4m to 0.1m
+        y = 0.15 - v_rel * 0.3  # y from 0.15m to -0.15m
+        return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
+
+    env.get_robot_target_pose_from_rel = mock_get_target_pose
+
+    return env
 
 
 def demo_pose_objects():
@@ -48,8 +81,11 @@ def demo_workspace_without_robot():
     print("DEMO: Workspace Management (Simulation Mode)")
     print("=" * 60)
 
-    # Create a workspace collection for simulation
-    workspaces = NiryoWorkspaces(use_simulation=True, verbose=False)
+    # Create a mock environment (simulates robot without hardware)
+    mock_environment = create_mock_environment(use_simulation=True)
+
+    # Create a workspace collection
+    workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
     print(f"\nNumber of workspaces: {len(workspaces)}")
     print(f"Workspace IDs: {workspaces.get_workspace_ids()}")
@@ -78,10 +114,14 @@ def demo_objects_with_mock_workspace():
     print("DEMO: Object Detection and Management")
     print("=" * 60)
 
-    # Create a simple mock workspace for demonstration
+    # Create a mock environment and workspace
+    mock_environment = create_mock_environment(use_simulation=False)
+
+    # For object creation, we need a workspace with a simpler mock
     class MockWorkspace:
         def __init__(self):
             self._id = "demo_workspace"
+            self._environment = mock_environment
 
         def id(self):
             return self._id
@@ -94,6 +134,9 @@ def demo_objects_with_mock_workspace():
             x = 0.4 - u_rel * 0.3
             y = 0.15 - v_rel * 0.3
             return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
+
+        def environment(self):
+            return self._environment
 
     workspace = MockWorkspace()
 
@@ -224,6 +267,8 @@ def main():
     print("=" * 60)
     print("\nThis demo showcases the robot_workspace package functionality")
     print("without requiring a physical robot or external dependencies.")
+    print("\nNote: This demo uses a mocked Environment object to simulate")
+    print("robot behavior without hardware.")
 
     # Demo 1: Pose objects
     demo_pose_objects()

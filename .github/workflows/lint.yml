@@ -9,12 +9,22 @@ on:
       - 'pyproject.toml'
       - 'requirements.txt'
       - '.github/workflows/lint.yml'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
   pull_request:
     branches: [ master ]
     paths:
       - '**.py'
       - 'pyproject.toml'
       - 'requirements.txt'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
 
 jobs:
   lint:
