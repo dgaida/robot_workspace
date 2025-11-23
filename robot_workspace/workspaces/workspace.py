@@ -12,7 +12,7 @@ from ..objects.pose_object import PoseObjectPNP
 from ..objects.object import Object
 
 if TYPE_CHECKING:
-    from ..environment import Environment
+    # from ..environment import Environment
     from ..objects.pose_object import PoseObjectPNP
 
 
@@ -28,18 +28,17 @@ class Workspace(ABC):
 
     # *** CONSTRUCTORS ***
     @log_start_end_cls()
-    def __init__(self, workspace_id: str, environment: "Environment", verbose: bool = False):
+    def __init__(self, workspace_id: str, verbose: bool = False):  # environment: "Environment",
         """
         Initializes the workspace completely. the derivatives do not have to do anything else in their constructors
         except calling this constructor.
 
         Args:
             workspace_id: ID of the workspace
-            environment: Environment this workspace belongs to
             verbose:
         """
         self._id = workspace_id
-        self._environment = environment
+        # self._environment = environment
         self._verbose = verbose
 
         self._set_observation_pose()
@@ -165,8 +164,8 @@ class Workspace(ABC):
     def id(self) -> str:
         return self._id
 
-    def environment(self) -> "Environment":
-        return self._environment
+    # def environment(self) -> "Environment":
+    #     return self._environment
 
     def xy_ul_wc(self) -> "PoseObjectPNP":
         """
@@ -254,7 +253,7 @@ class Workspace(ABC):
     _id = ""
 
     # environment this workspace belongs to
-    _environment = None
+    # _environment = None
 
     # (x, y, z) coordinate of upper left corner of workspace in world coordinates in meter
     _xy_ul_wc = None

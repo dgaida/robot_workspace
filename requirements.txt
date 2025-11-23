@@ -1,7 +1,2 @@
-pyniryo2
+opencv-python>=4.5.0
 pyniryo
-git+https://github.com/dgaida/text2speech.git
-git+https://github.com/dgaida/redis_robot_comm.git
-git+https://github.com/dgaida/vision_detect_segment.git
-# WidowX robot support (optional)
-# interbotix-xs-modules>=0.1.0

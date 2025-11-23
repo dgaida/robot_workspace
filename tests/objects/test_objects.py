@@ -4,10 +4,10 @@ Unit tests for Objects class (collection of Object instances)
 
 import pytest
 from unittest.mock import Mock
-from robot_environment.objects.objects import Objects
-from robot_environment.objects.object import Object
-from robot_environment.objects.pose_object import PoseObjectPNP
-from robot_environment.robot.robot_api import Location
+from robot_workspace.objects.objects import Objects
+from robot_workspace.objects.object import Object
+from robot_workspace.objects.pose_object import PoseObjectPNP
+from robot_workspace.robot.robot_api import Location
 
 
 @pytest.fixture

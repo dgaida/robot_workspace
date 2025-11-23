@@ -5,10 +5,10 @@
 from .workspaces import Workspaces
 from .niryo_workspace import NiryoWorkspace
 
-from typing import TYPE_CHECKING
+# from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from ..environment import Environment
+# if TYPE_CHECKING:
+#     from ..environment import Environment
 
 
 class NiryoWorkspaces(Workspaces):
@@ -17,17 +17,17 @@ class NiryoWorkspaces(Workspaces):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, environment: "Environment", verbose: bool = False):
+    def __init__(self, use_simulation: bool, verbose: bool = False):  # : "Environment"
         """
         Adds list of NiryoWorkspace to the list of Workspaces
 
         Args:
-            environment:
+            use_simulation:
             verbose:
         """
-        super().__init__(environment, verbose)
+        super().__init__(verbose)
 
-        if not environment.use_simulation():
+        if not use_simulation:
             # Define Workspace
             workspace_id = "niryo_ws2"  # "niryo_ws"
         else:
@@ -35,7 +35,7 @@ class NiryoWorkspaces(Workspaces):
 
         # TODO: add more workspaces
         # important to do this after the _robot object was created
-        super().append_workspace(NiryoWorkspace(workspace_id, environment, verbose))
+        super().append_workspace(NiryoWorkspace(workspace_id, verbose))
 
     # *** PUBLIC SET methods ***
 

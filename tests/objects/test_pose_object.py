@@ -5,7 +5,7 @@ Unit tests for PoseObjectPNP class
 import pytest
 import numpy as np
 import math
-from robot_environment.objects.pose_object import PoseObjectPNP
+from robot_workspace.objects.pose_object import PoseObjectPNP
 
 
 class TestPoseObjectPNP:

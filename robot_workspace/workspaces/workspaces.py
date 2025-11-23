@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Optional
 if TYPE_CHECKING:
     from ..workspaces.workspace import Workspace
     from ..objects.pose_object import PoseObjectPNP
-    from ..environment import Environment
+    # from ..environment import Environment
 
 
 class Workspaces(List["Workspace"]):
@@ -17,19 +17,18 @@ class Workspaces(List["Workspace"]):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, environment: "Environment", verbose: bool = False):
+    def __init__(self, verbose: bool = False):  # : "Environment"
         """
         Creates an empty list of Workspace class
 
         Args:
-            environment:
             verbose:
 
         """
         super().__init__()
 
         self._verbose = verbose
-        self._environment = environment
+        # self._environment = environment
 
     # *** PUBLIC SET methods ***
 
@@ -169,8 +168,8 @@ class Workspaces(List["Workspace"]):
 
     # *** PUBLIC properties ***
 
-    def environment(self) -> "Environment":
-        return self._environment
+    # def environment(self) -> "Environment":
+    #     return self._environment
 
     def verbose(self) -> bool:
         return self._verbose
@@ -178,6 +177,6 @@ class Workspaces(List["Workspace"]):
     # *** PRIVATE variables ***
 
     # environment this workspace belongs to
-    _environment = None
+    # _environment = None
 
     _verbose = False

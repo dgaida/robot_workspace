@@ -7,11 +7,11 @@ from ..common.logger import log_start_end_cls
 from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
 
-from typing import TYPE_CHECKING
+# from typing import TYPE_CHECKING
 import math
 
-if TYPE_CHECKING:
-    from ..environment import Environment
+# if TYPE_CHECKING:
+#     from ..environment import Environment
 
 
 class NiryoWorkspace(Workspace):
@@ -21,7 +21,7 @@ class NiryoWorkspace(Workspace):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, workspace_id: str, environment: "Environment", verbose: bool = False):
+    def __init__(self, workspace_id: str, verbose: bool = False):  # : "Environment"
         """
         Inits the workspace.
 
@@ -30,7 +30,7 @@ class NiryoWorkspace(Workspace):
             environment: object of the Environment class
             verbose:
         """
-        super().__init__(workspace_id, environment, verbose)
+        super().__init__(workspace_id, verbose)
 
     # *** PUBLIC GET methods ***
 

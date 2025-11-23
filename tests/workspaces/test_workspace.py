@@ -4,10 +4,10 @@ Unit tests for Workspace classes
 
 import pytest
 from unittest.mock import Mock
-from robot_environment.workspaces.niryo_workspace import NiryoWorkspace
-from robot_environment.workspaces.workspaces import Workspaces
-from robot_environment.workspaces.niryo_workspaces import NiryoWorkspaces
-from robot_environment.objects.pose_object import PoseObjectPNP
+from robot_workspace.workspaces.niryo_workspace import NiryoWorkspace
+from robot_workspace.workspaces.workspaces import Workspaces
+from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
+from robot_workspace.objects.pose_object import PoseObjectPNP
 
 
 @pytest.fixture

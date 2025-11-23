@@ -2,21 +2,14 @@
 # should be final
 # Documentation and type definitions are final (maybe chatgpt can improve it).
 
-from ..common.logger import log_start_end_cls, pyniryo_v
+from ..common.logger import log_start_end_cls
 
 import numpy as np
 import math
 
-if pyniryo_v == "pyniryo2":
-    from pyniryo2 import PoseObject
-else:
-    from pyniryo.api.objects import PoseObject
+from pyniryo.api.objects import PoseObject
 
 from typing import List
-
-# if TYPE_CHECKING:
-# from pyniryo.api.objects import PoseObject
-# from pyniryo2 import PoseObject
 
 
 class PoseObjectPNP:
