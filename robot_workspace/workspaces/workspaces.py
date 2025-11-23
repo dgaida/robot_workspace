@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional
 if TYPE_CHECKING:
     from ..workspaces.workspace import Workspace
     from ..objects.pose_object import PoseObjectPNP
+
     # from ..environment import Environment
 
 

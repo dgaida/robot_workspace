@@ -21,5 +21,9 @@ __all__ = [
     "Location",
     "Object",
     "Objects",
-    "PoseObjectPNP", "Workspace", "Workspaces", "NiryoWorkspace", "NiryoWorkspaces",
+    "PoseObjectPNP",
+    "Workspace",
+    "Workspaces",
+    "NiryoWorkspace",
+    "NiryoWorkspaces",
 ]

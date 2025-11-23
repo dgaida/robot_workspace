@@ -3,7 +3,7 @@
 
 from ..common.logger import log_start_end_cls
 
-from ..robot.robot_api import Location
+from .object_api import Location
 
 import numpy as np
 import math
@@ -13,7 +13,7 @@ from .object import Object
 from typing import TYPE_CHECKING, List, Optional, Union, Dict, Any
 
 if TYPE_CHECKING:
-    from ..robot.robot_api import Location
+    from .object_api import Location
     from ..workspaces.workspace import Workspace
 
 
