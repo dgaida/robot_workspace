@@ -129,3 +129,5 @@ class NiryoWorkspace(Workspace):
     # *** PUBLIC properties ***
 
     # *** PRIVATE variables ***
+
+    _environment = None
