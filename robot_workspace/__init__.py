@@ -9,10 +9,10 @@ from .objects.object_api import Location
 from .objects.object import Object
 from .objects.objects import Objects
 from .objects.pose_object import PoseObjectPNP
-from .workspace import Workspace
-from .workspaces import Workspaces
-from .niryo_workspace import NiryoWorkspace
-from .niryo_workspaces import NiryoWorkspaces
+from .workspaces.workspace import Workspace
+from .workspaces.workspaces import Workspaces
+from .workspaces.niryo_workspace import NiryoWorkspace
+from .workspaces.niryo_workspaces import NiryoWorkspaces
 
 __version__ = "0.1.0"
 __author__ = "Daniel Gaida"
