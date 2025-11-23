@@ -17,7 +17,7 @@ class NiryoWorkspaces(Workspaces):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, use_simulation: bool, verbose: bool = False):  # : "Environment"
+    def __init__(self, environment, verbose: bool = False):  # : "Environment"
         """
         Adds list of NiryoWorkspace to the list of Workspaces
 
@@ -27,7 +27,7 @@ class NiryoWorkspaces(Workspaces):
         """
         super().__init__(verbose)
 
-        if not use_simulation:
+        if not environment.use_simulation():
             # Define Workspace
             workspace_id = "niryo_ws2"  # "niryo_ws"
         else:
@@ -35,7 +35,7 @@ class NiryoWorkspaces(Workspaces):
 
         # TODO: add more workspaces
         # important to do this after the _robot object was created
-        super().append_workspace(NiryoWorkspace(workspace_id, verbose))
+        super().append_workspace(NiryoWorkspace(workspace_id, environment, verbose))
 
     # *** PUBLIC SET methods ***
 

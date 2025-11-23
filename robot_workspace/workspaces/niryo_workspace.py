@@ -21,7 +21,7 @@ class NiryoWorkspace(Workspace):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, workspace_id: str, verbose: bool = False):  # : "Environment"
+    def __init__(self, workspace_id: str, environment, verbose: bool = False):  # : "Environment"
         """
         Inits the workspace.
 
@@ -31,6 +31,8 @@ class NiryoWorkspace(Workspace):
             verbose:
         """
         super().__init__(workspace_id, verbose)
+
+        self._environment = environment
 
     # *** PUBLIC GET methods ***
 
