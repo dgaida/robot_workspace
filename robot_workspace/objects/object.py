@@ -623,7 +623,7 @@ class Object(ObjectAPI):
     # *** PRIVATE STATIC/CLASS methods ***
 
     @staticmethod
-    def _calculate_center_of_mass(mask_8u: np.ndarray) -> tuple[float, float] | None:
+    def _calculate_center_of_mass(mask_8u: np.ndarray) -> Optional[tuple[float, float]]:
         """
         Calculates the center of mass of an object in a segmentation mask.
 
