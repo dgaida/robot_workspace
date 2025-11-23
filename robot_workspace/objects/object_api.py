@@ -5,6 +5,48 @@ from abc import ABC, abstractmethod
 
 from typing import List
 
+from enum import Enum
+
+
+class Location(Enum):
+    """
+    Class that defines Locations, needed in the class RobotAPI, Robot and AgentAPI, Agent
+    """
+
+    LEFT_NEXT_TO = "left next to"
+    RIGHT_NEXT_TO = "right next to"
+    ABOVE = "above"
+    BELOW = "below"
+    ON_TOP_OF = "on top of"
+    INSIDE = "inside"
+    CLOSE_TO = "close to"
+    NONE = None
+
+    @staticmethod
+    def convert_str2location(location: Union["Location", str, None]) -> "Location":
+        """
+        Converts a string to a Location enum if it matches one of the Location values.
+        If already a Location, returns it unchanged.
+
+        Args:
+            location (Union[Location, str]): A Location object or a string representing a location.
+
+        Returns:
+            Location: The corresponding Location object.
+        """
+        if isinstance(location, str):
+            # Match string to enum value
+            for loc in Location:
+                if location == loc.value:
+                    return loc
+            raise ValueError(f"Invalid location string: {location}")
+        elif isinstance(location, Location):
+            return location
+        elif location is None:
+            return Location.NONE
+        else:
+            raise TypeError("Location must be either a string or a Location enum")
+
 
 class ObjectAPI(ABC):
     """

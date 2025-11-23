@@ -7,10 +7,11 @@ properties, positions, and segmentation information.
 
 from .object import Object
 from .objects import Objects
-from .object_api import ObjectAPI
+from .object_api import ObjectAPI, Location
 from .pose_object import PoseObjectPNP
 
 __all__ = [
+    "Location",
     "Object",
     "Objects",
     "ObjectAPI",

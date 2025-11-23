@@ -1,4 +1,4 @@
-# Robot Environment
+# Robot Workspace
 
 A comprehensive Python framework for robotic pick-and-place operations with vision-based object detection and manipulation capabilities.
 
