@@ -30,9 +30,9 @@ class NiryoWorkspace(Workspace):
             environment: object of the Environment class
             verbose:
         """
-        super().__init__(workspace_id, verbose)
-
         self._environment = environment
+
+        super().__init__(workspace_id, verbose)
 
     # *** PUBLIC GET methods ***
 
@@ -127,6 +127,9 @@ class NiryoWorkspace(Workspace):
     # *** PRIVATE STATIC/CLASS methods ***
 
     # *** PUBLIC properties ***
+
+    def environment(self):
+        return self._environment
 
     # *** PRIVATE variables ***
 

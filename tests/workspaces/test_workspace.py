@@ -156,14 +156,13 @@ class TestWorkspaces:
 
     def test_initialization(self, mock_environment):
         """Test workspaces collection initialization"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
 
         assert len(workspaces) == 0
-        assert workspaces.environment() == mock_environment
 
     def test_append_workspace(self, mock_environment):
         """Test appending workspace"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("test_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -173,7 +172,7 @@ class TestWorkspaces:
 
     def test_get_workspace(self, mock_environment):
         """Test getting workspace by index"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws1 = NiryoWorkspace("ws1", mock_environment)
         ws2 = NiryoWorkspace("ws2", mock_environment)
 
@@ -185,7 +184,7 @@ class TestWorkspaces:
 
     def test_get_workspace_by_id(self, mock_environment):
         """Test getting workspace by ID"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws1 = NiryoWorkspace("ws1", mock_environment)
         ws2 = NiryoWorkspace("ws2", mock_environment)
 
@@ -198,7 +197,7 @@ class TestWorkspaces:
 
     def test_get_workspace_ids(self, mock_environment):
         """Test getting all workspace IDs"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws1 = NiryoWorkspace("ws1", mock_environment)
         ws2 = NiryoWorkspace("ws2", mock_environment)
 
@@ -213,7 +212,7 @@ class TestWorkspaces:
 
     def test_get_workspace_id(self, mock_environment):
         """Test getting workspace ID by index"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("test_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -222,7 +221,7 @@ class TestWorkspaces:
 
     def test_get_workspace_home_id(self, mock_environment):
         """Test getting home workspace ID"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("home_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -231,7 +230,7 @@ class TestWorkspaces:
 
     def test_get_home_workspace(self, mock_environment):
         """Test getting home workspace"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("home_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -240,7 +239,7 @@ class TestWorkspaces:
 
     def test_get_observation_pose(self, mock_environment):
         """Test getting observation pose by workspace ID"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("niryo_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -251,7 +250,7 @@ class TestWorkspaces:
 
     def test_get_width_height_m(self, mock_environment):
         """Test getting workspace dimensions"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("niryo_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -263,7 +262,7 @@ class TestWorkspaces:
 
     def test_get_img_shape(self, mock_environment):
         """Test getting image shape"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("niryo_ws", mock_environment)
         ws.set_img_shape((640, 480, 3))
 
@@ -275,7 +274,7 @@ class TestWorkspaces:
 
     def test_get_visible_workspace(self, mock_environment):
         """Test getting visible workspace"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws1 = NiryoWorkspace("niryo_ws", mock_environment)
         ws2 = NiryoWorkspace("gazebo_1", mock_environment)
 
@@ -290,7 +289,7 @@ class TestWorkspaces:
 
     def test_get_visible_workspace_none(self, mock_environment):
         """Test when no workspace is visible"""
-        workspaces = Workspaces(mock_environment)
+        workspaces = Workspaces()
         ws = NiryoWorkspace("niryo_ws", mock_environment)
 
         workspaces.append_workspace(ws)
@@ -303,7 +302,7 @@ class TestWorkspaces:
 
     def test_verbose_property(self, mock_environment):
         """Test verbose property"""
-        workspaces = Workspaces(mock_environment, verbose=True)
+        workspaces = Workspaces(verbose=True)
         assert workspaces.verbose() is True
 
 
