@@ -281,52 +281,50 @@ class Object(ObjectAPI):
     def from_dict(cls, data: Dict[str, Any], workspace: "Workspace") -> Optional["Object"]:
         """
         Creates an Object instance from a dictionary.
-        Note: This is a simplified version since we don't have the original mask.
 
         Args:
-            data: Dictionary containing object data
+            data: Dictionary containing object data (from to_dict())
             workspace: Workspace instance
 
         Returns:
             Object: Reconstructed object instance or None if reconstruction fails
         """
         try:
-            # Extract bounding box from relative coordinates
-            # bbox_rel = data['image_coordinates']['bounding_box_rel']
-            # img_shape = workspace.img_shape()
+            # Check if we have the new format (from to_dict) or old format (with bbox key)
+            if "bbox" in data:
+                # Old format - has bbox directly
+                bbox = data["bbox"]
+                u_min = bbox["x_min"]
+                v_min = bbox["y_min"]
+                u_max = bbox["x_max"]
+                v_max = bbox["y_max"]
+            elif "image_coordinates" in data and "bounding_box_rel" in data["image_coordinates"]:
+                # New format - convert from relative coordinates
+                bbox_rel = data["image_coordinates"]["bounding_box_rel"]
+                img_shape = workspace.img_shape()
 
-            # u_min = int(bbox_rel['u_min'] * img_shape[0])
-            # v_min = int(bbox_rel['v_min'] * img_shape[1])
-            # u_max = int(bbox_rel['u_max'] * img_shape[0])
-            # v_max = int(bbox_rel['v_max'] * img_shape[1])
-
-            bbox = data["bbox"]
-
-            u_min = bbox["x_min"]
-            v_min = bbox["y_min"]
-            u_max = bbox["x_max"]
-            v_max = bbox["y_max"]
-
-            # print(data)
-
-            if data["has_mask"] and "mask_shape" in data:
-                # print(data["mask_shape"], tuple(data["mask_shape"]))
-                mask_8u = Object._deserialize_mask(data["mask_data"], data["mask_shape"], data["mask_dtype"])
+                u_min = int(bbox_rel["u_min"] * img_shape[0])
+                v_min = int(bbox_rel["v_min"] * img_shape[1])
+                u_max = int(bbox_rel["u_max"] * img_shape[0])
+                v_max = int(bbox_rel["v_max"] * img_shape[1])
             else:
-                mask_8u = None
+                raise KeyError("Missing bounding box information in dictionary")
 
-            # Create object without mask (mask will be None)
+            # Handle mask if present
+            mask_8u = None
+            if data.get("has_mask", False) and "mask_data" in data and "mask_shape" in data:
+                mask_8u = cls._deserialize_mask(data["mask_data"], data["mask_shape"], data.get("mask_dtype", "uint8"))
+
+            # Create object
             obj = cls(
                 label=data["label"],
                 u_min=u_min,
                 v_min=v_min,
                 u_max=u_max,
                 v_max=v_max,
-                mask_8u=mask_8u,  # No mask available from JSON
+                mask_8u=mask_8u,
                 workspace=workspace,
             )
-
-            # print(obj.label(), obj.uv_rel_o(), obj.x_com(), obj.y_com(), obj.pose_com(), obj.pose_center())
 
             # Restore additional properties if needed
             if "confidence" in data:
