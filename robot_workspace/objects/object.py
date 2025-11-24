@@ -72,6 +72,9 @@ class Object(ObjectAPI):
         self._workspace = workspace
         self._verbose = verbose
 
+        if self._workspace.img_shape() is None:
+            raise ValueError("Object has no image shape. This probably means that the Niryo Workspace was not detected.")
+
         self._u_rel_min, self._v_rel_min = self._calc_rel_coordinates(u_min, v_min)
         self._u_rel_max, self._v_rel_max = self._calc_rel_coordinates(u_max, v_max)
 
