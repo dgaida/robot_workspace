@@ -406,24 +406,43 @@ class TestLocationIntegration:
         assert get_offset(Location.BELOW) == (-1, 0)
         assert get_offset(Location.NONE) == (0, 0)
 
-    def test_location_with_match_statement(self):
-        """Test Location with match statement (Python 3.10+)"""
-        import sys
+    # def test_location_with_match_statement(self):
+    #     """Test Location with match statement (Python 3.10+)"""
+    #     import sys
+    #
+    #     if sys.version_info >= (3, 10):
+    #
+    #         def describe_location(loc: Location) -> str:
+    #             match loc:
+    #                 case Location.LEFT_NEXT_TO:
+    #                     return "to the left"
+    #                 case Location.RIGHT_NEXT_TO:
+    #                     return "to the right"
+    #                 case Location.ABOVE:
+    #                     return "above"
+    #                 case Location.BELOW:
+    #                     return "below"
+    #                 case _:
+    #                     return "somewhere"
+    #
+    #         assert describe_location(Location.LEFT_NEXT_TO) == "to the left"
+    #         assert describe_location(Location.NONE) == "somewhere"
 
-        if sys.version_info >= (3, 10):
+    def test_location_without_match_statement(self):
+        """Test Location without match statement (Python 3.9 compatible)"""
 
-            def describe_location(loc: Location) -> str:
-                match loc:
-                    case Location.LEFT_NEXT_TO:
-                        return "to the left"
-                    case Location.RIGHT_NEXT_TO:
-                        return "to the right"
-                    case Location.ABOVE:
-                        return "above"
-                    case Location.BELOW:
-                        return "below"
-                    case _:
-                        return "somewhere"
+        # This version works for all Python versions, including <3.10
+        def describe_location(loc: Location) -> str:
+            if loc == Location.LEFT_NEXT_TO:
+                return "to the left"
+            elif loc == Location.RIGHT_NEXT_TO:
+                return "to the right"
+            elif loc == Location.ABOVE:
+                return "above"
+            elif loc == Location.BELOW:
+                return "below"
+            else:
+                return "somewhere"
 
-            assert describe_location(Location.LEFT_NEXT_TO) == "to the left"
-            assert describe_location(Location.NONE) == "somewhere"
+        assert describe_location(Location.LEFT_NEXT_TO) == "to the left"
+        assert describe_location(Location.NONE) == "somewhere"
