@@ -192,9 +192,7 @@ class Objects(List):
         """
         return f"""{', '.join(f"'{item.label()}'" for item in self)}"""
 
-    def get_largest_detected_object(
-        self, serializable: bool = False
-    ) -> Union[tuple["Objects", float], tuple[List[Dict], float]]:
+    def get_largest_detected_object(self, serializable: bool = False) -> Union[tuple["Object", float], tuple[Dict, float]]:
         """
         Returns the largest detected object based on its size in square meters.
 
@@ -209,9 +207,7 @@ class Objects(List):
 
         return (Object.to_dict(largest_object), size) if serializable else (largest_object, size)
 
-    def get_smallest_detected_object(
-        self, serializable: bool = False
-    ) -> Union[tuple["Objects", float], tuple[List[Dict], float]]:
+    def get_smallest_detected_object(self, serializable: bool = False) -> Union[tuple["Object", float], tuple[Dict, float]]:
         """
         Returns the smallest detected object based on its size in square meters.
 
