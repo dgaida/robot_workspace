@@ -1,0 +1,132 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,shadows,fit}
+
+\begin{document}
+
+\tikzset{
+  core/.style={
+    rectangle,
+    draw,
+    fill=blue!20,
+    text width=2.8cm,
+    text centered,
+    minimum height=1.2cm,
+    rounded corners,
+    drop shadow
+  },
+  collection/.style={
+    rectangle,
+    draw,
+    fill=green!20,
+    text width=2.8cm,
+    text centered,
+    minimum height=1.2cm,
+    rounded corners,
+    drop shadow
+  },
+  concrete/.style={
+    rectangle,
+    draw,
+    fill=orange!20,
+    text width=2.8cm,
+    text centered,
+    minimum height=1.2cm,
+    rounded corners,
+    drop shadow
+  },
+  enum/.style={
+    rectangle,
+    draw,
+    fill=purple!20,
+    text width=2.2cm,
+    text centered,
+    minimum height=1cm,
+    rounded corners
+  },
+  arrow/.style={
+    ->,
+    >=stealth,
+    thick
+  },
+  inherit/.style={
+    ->,
+    >=open triangle 60,
+    thick,
+    dashed
+  },
+  compose/.style={
+    ->,
+    >=diamond,
+    thick
+  },
+  label/.style={
+    font=\small,
+    text width=2.0cm,
+    text centered
+  }
+}
+
+\begin{tikzpicture}[node distance=2.5cm and 3.5cm]
+
+  % ===== Object Layer =====
+  \node[core] (poseobject) {PoseObjectPNP\\{\scriptsize 6-DOF Pose}};
+  \node[core, above right=of poseobject] (objectapi) {ObjectAPI\\{\scriptsize Abstract}};
+  \node[enum, right=of objectapi] (location) {Location\\{\scriptsize Enum}};
+
+  \node[core, below=of objectapi] (object) {Object\\{\scriptsize Detected Object}};
+  \node[collection, below=of location] (objects) {Objects\\{\scriptsize Collection}};
+
+  % ===== Workspace Layer =====
+  \node[core, below=3cm of poseobject] (workspace) {Workspace\\{\scriptsize Abstract}};
+  \node[collection, right=of workspace] (workspaces) {Workspaces\\{\scriptsize Collection}};
+
+  \node[concrete, below=1.5cm of workspace] (niryows) {NiryoWorkspace\\{\scriptsize Concrete}};
+  \node[concrete, below=1.5cm of workspaces] (niryowss) {NiryoWorkspaces\\{\scriptsize Concrete}};
+
+  % ===== Relationships: Inheritance =====
+  \draw[inherit] (object) -- node[right, label, font=\scriptsize] {inherits} (objectapi);
+  \draw[inherit] (niryows) -- node[right, label, font=\scriptsize] {inherits} (workspace);
+  \draw[inherit] (niryowss) -- node[right, label, font=\scriptsize] {inherits} (workspaces);
+
+  % ===== Relationships: Composition =====
+  \draw[compose] (object) -- node[above, label, font=\scriptsize] {has pose} (poseobject);
+  \draw[compose] (object) -- node[right, label, font=\scriptsize] {belongs to} (workspace);
+  \draw[compose] (objects) -- node[above, label, font=\scriptsize] {contains} (object);
+  \draw[compose] (workspace) -- node[right, label, font=\scriptsize] {has corners} (poseobject);
+  \draw[compose] (workspaces) -- node[above, label, font=\scriptsize] {manages} (workspace);
+
+  % ===== Relationships: Usage =====
+  \draw[arrow] (objects) -- node[left, label, font=\scriptsize] {uses for\\spatial queries} (location);
+  \draw[arrow] (niryows.west) -- ++(-1.0,0) |- node[left, label, font=\scriptsize] {creates} (poseobject.west);
+  \draw[arrow] (niryowss) -- node[above, label, font=\scriptsize] {creates} (niryows);
+
+  % ===== Data Flow =====
+  %\draw[arrow, blue, very thick] (poseobject.south) to[bend right=20] node[left, label, font=\scriptsize] {coordinate\\transform} (workspace.north);
+  %\draw[arrow, blue, very thick] (workspace.east) to[bend left=15] node[above, label, font=\scriptsize] {world coords} (object.west);
+
+  % ===== Group boxes =====
+  \node[draw, dashed, thick, fit=(poseobject) (objectapi) (location) (object) (objects),
+        inner sep=0.4cm] (objlayer) {};
+  \node[above=0.1cm of objlayer] {\textbf{Object Representation Layer}};
+
+  \node[draw, dashed, thick, fit=(workspace) (workspaces) (niryows) (niryowss),
+        inner sep=0.4cm] (wslayer) {};
+  \node[below=0.1cm of wslayer] {\textbf{Workspace Management Layer}};
+
+  % ===== Legend =====
+  \node[above right=0.5cm and 2.5cm of workspaces, anchor=west] (legend_title) {\textbf{Legend:}};
+
+  \node[core, below=0.2cm of legend_title, minimum height=0.8cm, text width=2cm] (leg_core) {\scriptsize Core Class};
+  \node[collection, right=0.5cm of leg_core, minimum height=0.8cm, text width=2cm] (leg_coll) {\scriptsize Collection};
+  \node[concrete, right=0.5cm of leg_coll, minimum height=0.8cm, text width=2cm] (leg_conc) {\scriptsize Concrete Impl.};
+
+  \node[below=0.3cm of leg_core, anchor=north west] (leg_arrows) {};
+  \draw[inherit] (leg_arrows) -- ++(0.8,0) node[right, font=\scriptsize] {Inheritance};
+  \draw[compose] ([yshift=-0.4cm]leg_arrows) -- ++(0.8,0) node[right, font=\scriptsize] {Composition};
+  \draw[arrow] ([yshift=-0.8cm]leg_arrows) -- ++(0.8,0) node[right, font=\scriptsize] {Uses/Creates};
+  %\draw[arrow, blue, very thick] ([yshift=-1.2cm]leg_arrows) -- ++(0.8,0) node[right, font=\scriptsize] {Data Flow};
+
+\end{tikzpicture}
+
+\end{document}

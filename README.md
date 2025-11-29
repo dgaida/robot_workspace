@@ -54,6 +54,10 @@ robot_workspace/
     └── logger.py           # Logging decorators
 ```
 
+## Diagram
+
+![Architecture diagram](docs/architecture_diagram.png)
+
 ## Installation
 
 ### Prerequisites
