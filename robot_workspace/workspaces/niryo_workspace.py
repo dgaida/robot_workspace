@@ -92,8 +92,9 @@ class NiryoWorkspace(Workspace):
         Set the variable _observation_pose for the given workspace. An observation pose is a pose of the gripper
         where the gripper hovers over the workspace. For the niryo robot this is a gripper pose in which the
         gripper mounted camera can observe the complete workspace.
+
+        Supports multiple workspace configurations.
         """
-        # TODO: add more workspaces and their observation spaces
         if self._id == "niryo_ws" or self._id == "niryo_ws2":
             self._observation_pose = PoseObjectPNP(  # position for the robot to watch the workspace in the real world
                 x=0.173 - 0.0,
@@ -103,17 +104,51 @@ class NiryoWorkspace(Workspace):
                 pitch=1.327 - 0.0,
                 yaw=-3.027,
             )
+        # Left workspace (for multi-workspace setup)
+        elif self._id == "niryo_ws_left":
+            self._observation_pose = PoseObjectPNP(
+                x=0.173,
+                y=0.10,  # Shifted to the left
+                z=0.277,
+                roll=-3.042,
+                pitch=1.327,
+                yaw=-3.027,
+            )
+
+        # Right workspace (for multi-workspace setup)
+        elif self._id == "niryo_ws_right":
+            self._observation_pose = PoseObjectPNP(
+                x=0.173,
+                y=-0.10,  # Shifted to the right
+                z=0.277,
+                roll=-3.042,
+                pitch=1.327,
+                yaw=-3.027,
+            )
+
+        # Gazebo simulation workspaces
         elif self._id == "gazebo_1":
-            self._observation_pose = PoseObjectPNP(  # position for the robot to watch the workspace in the simulation
+            self._observation_pose = PoseObjectPNP(
                 x=0.18,
-                y=0,
+                y=0.0,
                 z=0.36,
                 roll=2.4,
                 pitch=math.pi / 2,
-                yaw=2.4,  # roll=0.0, pitch=math.pi / 2, yaw=0.0,
+                yaw=2.4,
             )
+
+        elif self._id == "gazebo_2":
+            self._observation_pose = PoseObjectPNP(
+                x=0.18,
+                y=0.15,  # Second workspace in simulation
+                z=0.36,
+                roll=2.4,
+                pitch=math.pi / 2,
+                yaw=2.4,
+            )
+
         elif self._id == "gazebo_1_chocolate_bars":
-            self._observation_pose = PoseObjectPNP(  # position for the robot to watch the workspace
+            self._observation_pose = PoseObjectPNP(
                 x=0.18,
                 y=0,
                 z=0.36,
@@ -121,8 +156,11 @@ class NiryoWorkspace(Workspace):
                 pitch=math.pi / 2 + 0.3,
                 yaw=0.0,
             )
+
         else:
             self._observation_pose = None
+            if self._verbose:
+                print(f"Warning: No observation pose defined for workspace '{self._id}'")
 
     # *** PRIVATE STATIC/CLASS methods ***
 
