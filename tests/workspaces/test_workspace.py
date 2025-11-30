@@ -315,8 +315,9 @@ class TestNiryoWorkspaces:
 
         workspaces = NiryoWorkspaces(mock_environment)
 
-        assert len(workspaces) == 1
-        assert workspaces[0].id() == "niryo_ws2"
+        assert len(workspaces) == 2
+        assert workspaces[0].id() == "niryo_ws_left"
+        assert workspaces[1].id() == "niryo_ws_right"
 
     def test_initialization_simulation(self, mock_environment):
         """Test initialization with simulation"""
@@ -324,8 +325,9 @@ class TestNiryoWorkspaces:
 
         workspaces = NiryoWorkspaces(mock_environment)
 
-        assert len(workspaces) == 1
+        assert len(workspaces) == 2
         assert workspaces[0].id() == "gazebo_1"
+        assert workspaces[1].id() == "gazebo_2"
 
     def test_inherits_from_workspaces(self, mock_environment):
         """Test that NiryoWorkspaces inherits from Workspaces"""
@@ -341,4 +343,4 @@ class TestNiryoWorkspaces:
         ws = NiryoWorkspace("custom_ws", mock_environment)
         workspaces.append_workspace(ws)
 
-        assert len(workspaces) == 2
+        assert len(workspaces) == 3
