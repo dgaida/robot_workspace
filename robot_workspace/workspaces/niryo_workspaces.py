@@ -27,7 +27,7 @@ class NiryoWorkspaces(Workspaces):
 
         if not environment.use_simulation():
             # Real robot - can define multiple workspaces
-            workspace_ids = ["niryo_ws2", "niryo_ws_left", "niryo_ws_right"]  # Two workspaces
+            workspace_ids = ["niryo_ws2", "niryo_ws_right"]  # Two workspaces
         else:
             # Simulation - can also have multiple workspaces
             workspace_ids = ["gazebo_1", "gazebo_2"]

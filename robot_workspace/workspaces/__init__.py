@@ -24,8 +24,10 @@ from .workspace import Workspace
 from .workspaces import Workspaces
 from .niryo_workspace import NiryoWorkspace
 from .niryo_workspaces import NiryoWorkspaces
+from .widowx_workspace import WidowXWorkspace
+from .widowx_workspaces import WidowXWorkspaces
 
-__all__ = ["Workspace", "Workspaces", "NiryoWorkspace", "NiryoWorkspaces"]
+__all__ = ["Workspace", "Workspaces", "NiryoWorkspace", "NiryoWorkspaces", "WidowXWorkspace", "WidowXWorkspaces"]
 
 __version__ = "0.1.0"
 __author__ = "Daniel Gaida"
