@@ -149,8 +149,7 @@ class Object(ObjectAPI):
         """
         # Create a pose with the new x, y but keeping old z and orientation
         new_pose = self._pose_com.copy_with_offsets(
-            x_offset=xy_coordinate[0] - self._pose_com.x,
-            y_offset=xy_coordinate[1] - self._pose_com.y
+            x_offset=xy_coordinate[0] - self._pose_com.x, y_offset=xy_coordinate[1] - self._pose_com.y
         )
         self.set_pose_com(new_pose)
 
@@ -197,8 +196,7 @@ class Object(ObjectAPI):
 
         # Rotate bounding box corners around the old center
         rotated_corners = self._rotate_bounding_box(
-            old_u_min, old_v_min, old_u_max, old_v_max,
-            old_center_u, old_center_v, delta_yaw
+            old_u_min, old_v_min, old_u_max, old_v_max, old_center_u, old_center_v, delta_yaw
         )
 
         # Find new axis-aligned bounding box from rotated corners
@@ -554,8 +552,7 @@ class Object(ObjectAPI):
         return u_rel, v_rel
 
     def _rotate_bounding_box(
-            self, u_min: int, v_min: int, u_max: int, v_max: int,
-            center_u: int, center_v: int, angle: float
+        self, u_min: int, v_min: int, u_max: int, v_max: int, center_u: int, center_v: int, angle: float
     ) -> List[tuple[int, int]]:
         """
         Rotates the four corners of a bounding box around a center point.
@@ -775,6 +772,9 @@ class Object(ObjectAPI):
         contours, _ = cv2.findContours(mask_8u, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             self._largest_contour = None
+            if self.verbose():
+                print("No contours found in mask")
+            return  # Early return
 
         self._largest_contour = max(contours, key=cv2.contourArea)
 
