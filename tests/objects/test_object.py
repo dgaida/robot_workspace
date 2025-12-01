@@ -637,7 +637,7 @@ def mock_workspace():
     workspace.id.return_value = "test_workspace"
     workspace.img_shape.return_value = (640, 480, 3)
 
-    # Mock transform method - FIXED coordinate system
+    # Mock transform method
     # For Niryo: width goes along y-axis, height along x-axis
     # Upper-left should have higher x and higher y than lower-right
     def mock_transform(ws_id, u_rel, v_rel, yaw=0.0):
@@ -649,6 +649,11 @@ def mock_workspace():
         return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
 
     workspace.transform_camera2world_coords = mock_transform
+
+    # Mock workspace corner methods with actual PoseObjectPNP objects
+    workspace.xy_ul_wc.return_value = PoseObjectPNP(0.4, 0.15, 0.05, 0.0, 1.57, 0.0)  # Upper-left (0, 0)
+    workspace.xy_lr_wc.return_value = PoseObjectPNP(0.1, -0.15, 0.05, 0.0, 1.57, 0.0)  # Lower-right (1, 1)
+
     return workspace
 
 
