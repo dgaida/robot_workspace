@@ -316,7 +316,7 @@ class TestNiryoWorkspaces:
         workspaces = NiryoWorkspaces(mock_environment)
 
         assert len(workspaces) == 2
-        assert workspaces[0].id() == "niryo_ws_left"
+        assert workspaces[0].id() == "niryo_ws2"
         assert workspaces[1].id() == "niryo_ws_right"
 
     def test_initialization_simulation(self, mock_environment):

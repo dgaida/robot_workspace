@@ -5,10 +5,573 @@ Unit tests for Object class
 import pytest
 import numpy as np
 import json
+import math
 from unittest.mock import Mock
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.pose_object import PoseObjectPNP
 from robot_workspace import Location
+
+
+class TestObjectAdvancedInitialization:
+    """Advanced initialization tests"""
+
+    def test_initialization_no_workspace_image_shape_raises_error(self):
+        """Test that initialization fails if workspace has no image shape"""
+        workspace = Mock()
+        workspace.id.return_value = "test_workspace"
+        workspace.img_shape.return_value = None
+
+        with pytest.raises(ValueError, match="Object has no image shape"):
+            Object("test", 100, 100, 200, 200, None, workspace)
+
+    def test_initialization_with_verbose(self, mock_workspace):
+        """Test initialization with verbose enabled"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace, verbose=True)
+        assert obj.verbose() is True
+
+    def test_original_mask_is_copied(self, mock_workspace):
+        """Test that original mask is copied, not referenced"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:200, 100:200] = 255
+
+        obj = Object("test", 100, 100, 200, 200, mask, mock_workspace)
+
+        # Modify original mask
+        mask[100:200, 100:200] = 0
+
+        # Object should still have the copied mask
+        assert obj._original_mask_8u is not None
+        assert np.any(obj._original_mask_8u > 0)
+
+
+class TestObjectSetPoseCom:
+    """Tests for set_pose_com method (rotation and translation)"""
+
+    def test_set_pose_com_with_rotation(self, mock_workspace):
+        """Test set_pose_com with rotation"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[150:250, 150:250] = 255
+
+        obj = Object("test", 100, 100, 300, 300, mask, mock_workspace)
+
+        # Store original pose
+        original_yaw = obj.gripper_rotation()
+
+        # Create new pose with rotation
+        new_pose = obj.pose_com().copy_with_offsets(x_offset=0.05, y_offset=0.05, yaw_offset=math.pi / 4)
+
+        obj.set_pose_com(new_pose)
+
+        # Verify rotation changed
+        assert abs(obj.gripper_rotation() - (original_yaw + math.pi / 4)) < 0.01
+
+    def test_set_pose_com_without_mask(self, mock_workspace):
+        """Test set_pose_com without segmentation mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        new_pose = obj.pose_com().copy_with_offsets(x_offset=0.1, y_offset=0.1)
+        obj.set_pose_com(new_pose)
+
+        # Should complete without error
+        assert obj.pose_com() == new_pose
+
+    def test_set_pose_com_with_verbose(self, mock_workspace):
+        """Test set_pose_com with verbose output"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace, verbose=True)
+
+        new_pose = obj.pose_com().copy_with_offsets(x_offset=0.1)
+
+        # Should print verbose output (captured by pytest if needed)
+        obj.set_pose_com(new_pose)
+
+    def test_set_pose_com_boundary_clamping(self, mock_workspace):
+        """Test that bounding box is clamped to image boundaries"""
+        obj = Object("test", 500, 400, 600, 450, None, mock_workspace)
+
+        # Create pose that would push bbox outside boundaries
+        new_pose = PoseObjectPNP(0.5, 0.5, 0.05, 0.0, 1.57, 0.0)
+        obj.set_pose_com(new_pose)
+
+        # Bounding box should be within image boundaries
+        assert 0 <= obj._u_rel_min <= 1
+        assert 0 <= obj._v_rel_min <= 1
+        assert 0 <= obj._u_rel_max <= 1
+        assert 0 <= obj._v_rel_max <= 1
+
+
+class TestObjectSetPosition:
+    """Tests for legacy set_position method"""
+
+    def test_set_position_legacy_method(self, mock_workspace):
+        """Test legacy set_position method"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        original_z = obj.pose_com().z
+        obj.set_position([0.3, 0.05])
+
+        # Position should be updated
+        assert abs(obj.x_com() - 0.3) < 0.01
+        assert abs(obj.y_com() - 0.05) < 0.01
+        # Z should remain unchanged
+        assert obj.pose_com().z == original_z
+
+
+class TestObjectStringFormatting:
+    """Tests for different string formatting methods"""
+
+    def test_as_string_for_llm_lbl(self, mock_workspace):
+        """Test as_string_for_llm_lbl method"""
+        obj = Object("test_object", 100, 100, 200, 200, None, mock_workspace)
+        llm_lbl_str = obj.as_string_for_llm_lbl()
+
+        assert "test_object" in llm_lbl_str
+        assert "width:" in llm_lbl_str
+        assert "height:" in llm_lbl_str
+        assert "size:" in llm_lbl_str
+
+
+class TestObjectSerialization:
+    """Advanced serialization tests"""
+
+    def test_to_dict_with_mask(self, mock_workspace):
+        """Test to_dict with segmentation mask"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:200, 100:200] = 255
+
+        obj = Object("masked_obj", 100, 100, 200, 200, mask, mock_workspace)
+        obj_dict = obj.to_dict()
+
+        assert obj_dict["label"] == "masked_obj"
+        assert "dimensions" in obj_dict
+        assert "position" in obj_dict
+
+    def test_deserialize_mask_with_list_shape(self):
+        """Test _deserialize_mask with list shape"""
+        mask = np.ones((50, 50), dtype=np.uint8) * 255
+        import base64
+
+        mask_bytes = mask.tobytes()
+        mask_data = base64.b64encode(mask_bytes).decode("utf-8")
+
+        # Test with list shape instead of tuple
+        reconstructed = Object._deserialize_mask(mask_data, [50, 50], "uint8")
+
+        assert reconstructed.shape == (50, 50)
+        assert np.array_equal(reconstructed, mask)
+
+    def test_deserialize_mask_invalid_data(self):
+        """Test _deserialize_mask with invalid data"""
+        with pytest.raises(ValueError, match="Failed to deserialize mask"):
+            Object._deserialize_mask("invalid_base64", (50, 50), "uint8")
+
+    def test_from_dict_with_old_format(self, mock_workspace):
+        """Test from_dict with old format (bbox key)"""
+        obj_dict = {
+            "label": "test",
+            "bbox": {"x_min": 100, "y_min": 100, "x_max": 200, "y_max": 200},
+            "has_mask": False,
+        }
+
+        reconstructed = Object.from_dict(obj_dict, mock_workspace)
+
+        assert reconstructed is not None
+        assert reconstructed.label() == "test"
+
+    def test_from_dict_with_mask(self, mock_workspace):
+        """Test from_dict with mask data"""
+        # Create original object with mask
+        mask = np.ones((640, 480), dtype=np.uint8) * 200
+        Object("test", 100, 100, 200, 200, mask, mock_workspace)
+
+        # Serialize with mask
+        import base64
+
+        mask_bytes = mask.tobytes()
+        mask_data = base64.b64encode(mask_bytes).decode("utf-8")
+
+        obj_dict = {
+            "label": "test",
+            "bbox": {"x_min": 100, "y_min": 100, "x_max": 200, "y_max": 200},
+            "has_mask": True,
+            "mask_data": mask_data,
+            "mask_shape": list(mask.shape),
+            "mask_dtype": "uint8",
+        }
+
+        reconstructed = Object.from_dict(obj_dict, mock_workspace)
+
+        assert reconstructed is not None
+        assert reconstructed.label() == "test"
+
+    def test_from_dict_missing_bbox_raises_error(self, mock_workspace):
+        """Test from_dict with missing bounding box"""
+        obj_dict = {"label": "test"}
+
+        reconstructed = Object.from_dict(obj_dict, mock_workspace)
+
+        # Should handle gracefully and return None
+        assert reconstructed is None
+
+    def test_from_dict_with_confidence_and_class_id(self, mock_workspace):
+        """Test from_dict preserves confidence and class_id"""
+        obj_dict = {
+            "label": "test",
+            "bbox": {"x_min": 100, "y_min": 100, "x_max": 200, "y_max": 200},
+            "has_mask": False,
+            "confidence": 0.95,
+            "class_id": 5,
+        }
+
+        reconstructed = Object.from_dict(obj_dict, mock_workspace)
+
+        assert reconstructed is not None
+        assert hasattr(reconstructed, "_confidence")
+        assert reconstructed._confidence == 0.95
+        assert hasattr(reconstructed, "_class_id")
+        assert reconstructed._class_id == 5
+
+
+class TestObjectMaskOperations:
+    """Tests for mask-related operations"""
+
+    def test_rotate_mask(self, mock_workspace):
+        """Test _rotate_mask method"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[200:300, 200:300] = 255
+
+        obj = Object("test", 100, 100, 400, 400, mask, mock_workspace)
+
+        # Rotate mask by 45 degrees
+        rotated = obj._rotate_mask(mask, math.pi / 4, 320, 240)
+
+        assert rotated is not None
+        assert rotated.shape == mask.shape
+
+    def test_rotate_mask_with_none(self, mock_workspace):
+        """Test _rotate_mask with None mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        result = obj._rotate_mask(None, math.pi / 4, 100, 100)
+
+        assert result is None
+
+    def test_translate_mask(self, mock_workspace):
+        """Test _translate_mask method"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:200, 100:200] = 255
+
+        obj = Object("test", 100, 100, 200, 200, mask, mock_workspace)
+
+        # Translate mask by 50 pixels
+        translated = obj._translate_mask(mask, 50, 50)
+
+        assert translated is not None
+        assert translated.shape == mask.shape
+
+    def test_translate_mask_with_none(self, mock_workspace):
+        """Test _translate_mask with None mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        result = obj._translate_mask(None, 50, 50)
+
+        assert result is None
+
+    def test_calc_largest_contour_with_invalid_mask_dtype(self, mock_workspace):
+        """Test _calc_largest_contour raises error for invalid dtype"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        invalid_mask = np.zeros((640, 480), dtype=np.float32)
+
+        with pytest.raises(ValueError, match="Input mask must be an 8-bit"):
+            obj._calc_largest_contour(invalid_mask)
+
+    def test_calc_largest_contour_no_contours(self, mock_workspace):
+        """Test _calc_largest_contour with empty mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        empty_mask = np.zeros((640, 480), dtype=np.uint8)
+        obj._calc_largest_contour(empty_mask)
+
+        assert obj._largest_contour is None
+
+    def test_calculate_largest_contour_area_no_contours(self, mock_workspace):
+        """Test _calculate_largest_contour_area with no contours"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+        obj._largest_contour = None
+
+        area = obj._calculate_largest_contour_area()
+
+        assert area == 0
+
+    def test_calculate_largest_contour_area_empty_contour(self, mock_workspace):
+        """Test _calculate_largest_contour_area with empty contour"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+        obj._largest_contour = np.array([])
+
+        area = obj._calculate_largest_contour_area()
+
+        assert area == 0
+
+
+class TestObjectBoundingBoxRotation:
+    """Tests for bounding box rotation"""
+
+    def test_rotate_bounding_box(self, mock_workspace):
+        """Test _rotate_bounding_box method"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        rotated_corners = obj._rotate_bounding_box(100, 100, 200, 200, 150, 150, math.pi / 4)
+
+        assert len(rotated_corners) == 4
+        assert all(isinstance(corner, tuple) for corner in rotated_corners)
+        assert all(len(corner) == 2 for corner in rotated_corners)
+
+    def test_rotate_bounding_box_90_degrees(self, mock_workspace):
+        """Test bounding box rotation by 90 degrees"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        # Rotate by 90 degrees around center
+        rotated_corners = obj._rotate_bounding_box(100, 100, 200, 200, 150, 150, math.pi / 2)
+
+        # After 90° rotation, corners should have swapped positions
+        assert len(rotated_corners) == 4
+
+
+class TestObjectMinAreaRect:
+    """Tests for minimum area rectangle calculations"""
+
+    def test_get_params_of_min_area_rect_with_mask(self, mock_workspace):
+        """Test _get_params_of_min_area_rect with valid mask"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:200, 100:300] = 255  # Rectangle
+
+        obj = Object("test", 100, 100, 300, 200, mask, mock_workspace)
+
+        center, dimensions, theta = obj._get_params_of_min_area_rect()
+
+        assert center[0] > 0
+        assert center[1] > 0
+        assert dimensions[0] > 0
+        assert dimensions[1] > 0
+
+    def test_get_params_of_min_area_rect_no_contours(self, mock_workspace):
+        """Test _get_params_of_min_area_rect with no contours"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+        obj._largest_contour = None
+
+        center, dimensions, theta = obj._get_params_of_min_area_rect()
+
+        assert center == (0, 0)
+        assert dimensions == (0, 0)
+        assert theta == 0
+
+    def test_rotated_bounding_box_no_mask(self, mock_workspace):
+        """Test _rotated_bounding_box with no mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        width, height = obj._rotated_bounding_box()
+
+        assert width == 0
+        assert height == 0
+
+    def test_rotated_bounding_box_width_greater_than_height(self, mock_workspace):
+        """Test _rotated_bounding_box when width > height"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[200:250, 100:400] = 255  # Wide rectangle
+
+        obj = Object("test", 100, 200, 400, 250, mask, mock_workspace)
+
+        width, height = obj._rotated_bounding_box()
+
+        # Should return max as width, min as height
+        assert width >= height
+
+
+class TestObjectCoordinateTransformations:
+    """Tests for coordinate transformation methods"""
+
+    def test_world_to_rel_coordinates(self, mock_workspace):
+        """Test _world_to_rel_coordinates method"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        pose = PoseObjectPNP(0.25, 0.0, 0.05, 0.0, 1.57, 0.0)
+        u_rel, v_rel = obj._world_to_rel_coordinates(pose)
+
+        assert 0 <= u_rel <= 1
+        assert 0 <= v_rel <= 1
+
+    def test_world_to_rel_coordinates_with_zero_range(self, mock_workspace):
+        """Test _world_to_rel_coordinates with zero range (edge case)"""
+        # Create workspace with same corner coordinates
+        workspace = Mock()
+        workspace.id.return_value = "test"
+        workspace.img_shape.return_value = (640, 480, 3)
+
+        same_pose = PoseObjectPNP(0.3, 0.1, 0.05, 0.0, 1.57, 0.0)
+
+        def mock_transform(ws_id, u_rel, v_rel, yaw=0.0):
+            # Always return same position (zero range)
+            return same_pose
+
+        workspace.transform_camera2world_coords = mock_transform
+
+        obj = Object("test", 100, 100, 200, 200, None, workspace)
+
+        # Should handle zero range gracefully
+        u_rel, v_rel = obj._world_to_rel_coordinates(same_pose)
+
+        # Should be clamped to valid range
+        assert 0 <= u_rel <= 1
+        assert 0 <= v_rel <= 1
+
+
+class TestObjectSizeCalculations:
+    """Tests for size calculation methods"""
+
+    def test_calc_size_with_mask(self, mock_workspace):
+        """Test _calc_size with segmentation mask"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:300, 100:300] = 255  # 200x200 square
+
+        obj = Object("test", 100, 100, 300, 300, mask, mock_workspace)
+
+        assert obj.size_m2() > 0
+
+    def test_calc_size_without_mask(self, mock_workspace):
+        """Test _calc_size without segmentation mask"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        # Should calculate from bounding box
+        assert obj.size_m2() > 0
+
+    def test_calc_size_of_pixel_in_m_with_verbose(self, mock_workspace):
+        """Test _calc_size_of_pixel_in_m with verbose output"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace, verbose=True)
+
+        ratio_w, ratio_h = obj._calc_size_of_pixel_in_m()
+
+        assert ratio_w > 0
+        assert ratio_h > 0
+
+    def test_update_width_height(self, mock_workspace):
+        """Test _update_width_height method"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        mask[100:200, 100:250] = 255
+
+        obj = Object("test", 100, 100, 250, 200, mask, mock_workspace)
+
+        original_width = obj.width_m()
+
+        # Update with new dimensions
+        obj._update_width_height(100, 150)
+
+        # Dimensions should have changed
+        assert obj.width_m() != original_width
+
+
+class TestObjectGripperOrientation:
+    """Tests for gripper orientation calculations"""
+
+    def test_calc_gripper_orientation_with_vertical_object(self, mock_workspace):
+        """Test gripper orientation for vertical object"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        # Vertical rectangle (height > width)
+        mask[100:300, 200:250] = 255
+
+        obj = Object("test", 200, 100, 250, 300, mask, mock_workspace)
+
+        rotation, center = obj._calc_gripper_orientation_from_segmentation_mask()
+
+        assert isinstance(rotation, float)
+        assert 0 <= rotation <= 2 * math.pi
+        assert len(center) == 2
+
+    def test_calc_gripper_orientation_with_horizontal_object(self, mock_workspace):
+        """Test gripper orientation for horizontal object"""
+        mask = np.zeros((640, 480), dtype=np.uint8)
+        # Horizontal rectangle (width > height)
+        mask[200:250, 100:300] = 255
+
+        obj = Object("test", 100, 200, 300, 250, mask, mock_workspace)
+
+        rotation, center = obj._calc_gripper_orientation_from_segmentation_mask()
+
+        assert isinstance(rotation, float)
+        assert 0 <= rotation <= 2 * math.pi
+
+
+class TestObjectEdgeCases:
+    """Tests for edge cases and error handling"""
+
+    def test_object_with_very_small_bounding_box(self, mock_workspace):
+        """Test object with minimal bounding box"""
+        obj = Object("tiny", 100, 100, 101, 101, None, mock_workspace)
+
+        assert obj.width_m() > 0
+        assert obj.height_m() > 0
+        assert obj.size_m2() > 0
+
+    def test_object_at_image_boundaries(self, mock_workspace):
+        """Test object at the boundaries of the image"""
+        obj = Object("boundary", 0, 0, 10, 10, None, mock_workspace)
+
+        assert obj.u_rel_o() >= 0
+        assert obj.v_rel_o() >= 0
+
+    def test_generate_object_id_uniqueness(self, mock_workspace):
+        """Test that object IDs are unique"""
+        obj1 = Object("test", 100, 100, 200, 200, None, mock_workspace)
+        obj2 = Object("test", 150, 150, 250, 250, None, mock_workspace)
+
+        id1 = obj1.generate_object_id()
+        id2 = obj2.generate_object_id()
+
+        # IDs should be different (different positions/time)
+        assert id1 != id2
+
+
+class TestObjectProperties:
+    """Tests for property accessors"""
+
+    def test_all_relative_coordinate_properties(self, mock_workspace):
+        """Test all relative coordinate properties"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        # Test all UV properties
+        assert isinstance(obj.u_rel_o(), float)
+        assert isinstance(obj.v_rel_o(), float)
+        assert isinstance(obj.uv_rel_o(), tuple)
+        assert len(obj.uv_rel_o()) == 2
+
+    def test_all_pose_properties(self, mock_workspace):
+        """Test all pose-related properties"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        # Center pose
+        assert isinstance(obj.pose_center(), PoseObjectPNP)
+        assert isinstance(obj.x_center(), float)
+        assert isinstance(obj.y_center(), float)
+        assert isinstance(obj.xy_center(), tuple)
+
+        # COM pose
+        assert isinstance(obj.pose_com(), PoseObjectPNP)
+        assert isinstance(obj.x_com(), float)
+        assert isinstance(obj.y_com(), float)
+        assert isinstance(obj.xy_com(), tuple)
+
+    def test_all_dimension_properties(self, mock_workspace):
+        """Test all dimension properties"""
+        obj = Object("test", 100, 100, 200, 200, None, mock_workspace)
+
+        assert isinstance(obj.shape_m(), tuple)
+        assert len(obj.shape_m()) == 2
+        assert isinstance(obj.width_m(), float)
+        assert isinstance(obj.height_m(), float)
+        assert isinstance(obj.size_m2(), float)
+
+        assert obj.width_m() > 0
+        assert obj.height_m() > 0
+        assert obj.size_m2() > 0
 
 
 class TestLocation:

@@ -52,7 +52,7 @@ class TestMultiWorkspaceCollection:
 
         # Check workspace IDs
         workspace_ids = workspaces.get_workspace_ids()
-        assert "niryo_ws_left" in workspace_ids
+        assert "niryo_ws2" in workspace_ids
         assert "niryo_ws_right" in workspace_ids
 
     def test_get_workspace_left(self, mock_environment):
