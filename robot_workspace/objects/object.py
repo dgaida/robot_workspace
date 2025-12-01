@@ -75,6 +75,24 @@ class Object(ObjectAPI):
         if self._workspace.img_shape() is None:
             raise ValueError("Object has no image shape. This probably means that the Niryo Workspace was not detected.")
 
+        # Store original mask for rotation
+        self._original_mask_8u = mask_8u.copy() if mask_8u is not None else None
+
+        # Initialize the object with the common initialization logic
+        self._init_object_properties(u_min, v_min, u_max, v_max, mask_8u)
+
+    def _init_object_properties(self, u_min: int, v_min: int, u_max: int, v_max: int, mask_8u: np.ndarray) -> None:
+        """
+        Common initialization logic for object properties.
+        This method is called by __init__ and can be reused by set_pose_com.
+
+        Args:
+            u_min (int): Upper-left corner u-coordinate of the bounding box (in pixels).
+            v_min (int): Upper-left corner v-coordinate of the bounding box (in pixels).
+            u_max (int): Lower-right corner u-coordinate of the bounding box (in pixels).
+            v_max (int): Lower-right corner v-coordinate of the bounding box (in pixels).
+            mask_8u (np.ndarray): Optional segmentation mask of the object (8-bit, uint8).
+        """
         self._u_rel_min, self._v_rel_min = self._calc_rel_coordinates(u_min, v_min)
         self._u_rel_max, self._v_rel_max = self._calc_rel_coordinates(u_max, v_max)
 
@@ -94,8 +112,6 @@ class Object(ObjectAPI):
 
             self._gripper_rotation = gripper_rotation
 
-            # print(gripper_rotation)
-
             self._update_width_height(width, height)
 
             cx, cy = Object._calculate_center_of_mass(mask_8u)
@@ -104,10 +120,9 @@ class Object(ObjectAPI):
             v_0 = int(v_min + (v_max - v_min) / 2)
             cx = u_0
             cy = v_0
+            self._gripper_rotation = 0.0
 
         self._calc_size()
-
-        # print(workspace)
 
         self._pose_center, self._u_rel_o, self._v_rel_o = self._calc_pose_from_uv_coords(u_0, v_0)
         self._pose_com, self._u_rel_com, self._v_rel_com = self._calc_pose_from_uv_coords(cx, cy)
@@ -124,10 +139,121 @@ class Object(ObjectAPI):
 
     # *** PUBLIC SET methods ***
 
-    # TODO: the method has to be implemented and most be called after an object was placed somewhere else by the robot
-    # is called in place_object in robot class, bringt aber noch nichts, liegt an meiner Implementierung
     def set_position(self, xy_coordinate: List):
-        pass
+        """
+        Legacy method kept for backwards compatibility.
+        Consider using set_pose_com instead for full pose updates.
+
+        Args:
+            xy_coordinate: [x, y] world coordinates
+        """
+        # Create a pose with the new x, y but keeping old z and orientation
+        new_pose = self._pose_com.copy_with_offsets(
+            x_offset=xy_coordinate[0] - self._pose_com.x,
+            y_offset=xy_coordinate[1] - self._pose_com.y
+        )
+        self.set_pose_com(new_pose)
+
+    def set_pose_com(self, pose_com: "PoseObjectPNP") -> None:
+        """
+        Updates the object's center of mass pose and recalculates all dependent properties.
+
+        This method is called after a robot picks and places an object at a new location.
+        It handles both position changes and orientation changes (rotation around z-axis).
+
+        The method:
+        1. Calculates the rotation angle difference (delta_yaw)
+        2. Rotates the bounding box coordinates around the object's center
+        3. Rotates the segmentation mask if available
+        4. Recalculates all derived properties (width, height, size, etc.)
+
+        Args:
+            pose_com (PoseObjectPNP): New pose for the object's center of mass
+        """
+        if self.verbose():
+            print(f"Setting new pose_com: {pose_com}")
+            print(f"Old pose_com: {self._pose_com}")
+
+        # Calculate rotation difference (only around z-axis/yaw)
+        old_yaw = self._gripper_rotation
+        new_yaw = pose_com.yaw
+        delta_yaw = new_yaw - old_yaw
+
+        if self.verbose():
+            print(f"Rotation change: {math.degrees(delta_yaw):.2f} degrees")
+
+        # Get image dimensions
+        img_width, img_height, _ = self._workspace.img_shape()
+
+        # Calculate old center in pixel coordinates
+        old_center_u = int(self._u_rel_com * img_width)
+        old_center_v = int(self._v_rel_com * img_height)
+
+        # Calculate old bounding box corners in pixel coordinates
+        old_u_min = int(self._u_rel_min * img_width)
+        old_v_min = int(self._v_rel_min * img_height)
+        old_u_max = int(self._u_rel_max * img_width)
+        old_v_max = int(self._v_rel_max * img_height)
+
+        # Rotate bounding box corners around the old center
+        rotated_corners = self._rotate_bounding_box(
+            old_u_min, old_v_min, old_u_max, old_v_max,
+            old_center_u, old_center_v, delta_yaw
+        )
+
+        # Find new axis-aligned bounding box from rotated corners
+        new_u_min = int(min(corner[0] for corner in rotated_corners))
+        new_v_min = int(min(corner[1] for corner in rotated_corners))
+        new_u_max = int(max(corner[0] for corner in rotated_corners))
+        new_v_max = int(max(corner[1] for corner in rotated_corners))
+
+        # Rotate mask if available
+        rotated_mask = None
+        if self._original_mask_8u is not None:
+            rotated_mask = self._rotate_mask(self._original_mask_8u, delta_yaw, old_center_u, old_center_v)
+            # Update the original mask with the rotated version for future rotations
+            self._original_mask_8u = rotated_mask.copy()
+
+        # Now we need to translate everything to the new position
+        # Calculate the new center from pose_com
+        # We need to find what relative coordinates correspond to the new world position
+        new_center_u_rel, new_center_v_rel = self._world_to_rel_coordinates(pose_com)
+        new_center_u = int(new_center_u_rel * img_width)
+        new_center_v = int(new_center_v_rel * img_height)
+
+        # Calculate translation offset
+        translation_u = new_center_u - old_center_u
+        translation_v = new_center_v - old_center_v
+
+        if self.verbose():
+            print(f"Translation: u={translation_u}, v={translation_v}")
+
+        # Apply translation to bounding box
+        new_u_min += translation_u
+        new_v_min += translation_v
+        new_u_max += translation_u
+        new_v_max += translation_v
+
+        # Translate mask if available
+        if rotated_mask is not None:
+            rotated_mask = self._translate_mask(rotated_mask, translation_u, translation_v)
+
+        # Clamp to image boundaries
+        new_u_min = max(0, min(new_u_min, img_width - 1))
+        new_v_min = max(0, min(new_v_min, img_height - 1))
+        new_u_max = max(0, min(new_u_max, img_width - 1))
+        new_v_max = max(0, min(new_v_max, img_height - 1))
+
+        if self.verbose():
+            print(f"Old bbox: ({old_u_min}, {old_v_min}) to ({old_u_max}, {old_v_max})")
+            print(f"New bbox: ({new_u_min}, {new_v_min}) to ({new_u_max}, {new_v_max})")
+
+        # Reinitialize object properties with new bounding box and rotated mask
+        self._init_object_properties(new_u_min, new_v_min, new_u_max, new_v_max, rotated_mask)
+
+        # Override the calculated pose_com with the exact one provided
+        # (to avoid floating point errors from forward-backward transformations)
+        self._pose_com = pose_com
 
     # *** PUBLIC GET methods ***
 
@@ -384,6 +510,144 @@ class Object(ObjectAPI):
         return width_m, height_m
 
     # *** PRIVATE methods ***
+
+    def _world_to_rel_coordinates(self, pose: "PoseObjectPNP") -> tuple[float, float]:
+        """
+        Converts world coordinates to relative image coordinates.
+        This is the inverse of transform_camera2world_coords.
+
+        Since we don't have a direct inverse transformation, we'll use
+        the workspace corners to interpolate.
+
+        Args:
+            pose (PoseObjectPNP): Pose in world coordinates
+
+        Returns:
+            tuple[float, float]: Relative coordinates (u_rel, v_rel)
+        """
+        # Get workspace corners in world coordinates
+        ul = self._workspace.xy_ul_wc()  # (0, 0) in relative coords
+        lr = self._workspace.xy_lr_wc()  # (1, 1) in relative coords
+
+        # Linear interpolation to find relative coordinates
+        # Assuming linear mapping between world and relative coordinates
+
+        # For u_rel (horizontal): interpolate along x-axis
+        x_range = lr.x - ul.x
+        if abs(x_range) > 1e-6:
+            u_rel = (pose.x - ul.x) / x_range
+        else:
+            u_rel = 0.5
+
+        # For v_rel (vertical): interpolate along y-axis
+        # Note: y increases to the right in world coords but v increases downward
+        y_range = ul.y - lr.y  # ul.y should be > lr.y
+        if abs(y_range) > 1e-6:
+            v_rel = (ul.y - pose.y) / y_range
+        else:
+            v_rel = 0.5
+
+        # Clamp to [0, 1]
+        u_rel = max(0.0, min(1.0, u_rel))
+        v_rel = max(0.0, min(1.0, v_rel))
+
+        return u_rel, v_rel
+
+    def _rotate_bounding_box(
+            self, u_min: int, v_min: int, u_max: int, v_max: int,
+            center_u: int, center_v: int, angle: float
+    ) -> List[tuple[int, int]]:
+        """
+        Rotates the four corners of a bounding box around a center point.
+
+        Args:
+            u_min, v_min: Top-left corner
+            u_max, v_max: Bottom-right corner
+            center_u, center_v: Center of rotation
+            angle: Rotation angle in radians (counter-clockwise)
+
+        Returns:
+            List of four rotated corner coordinates [(u, v), ...]
+        """
+        # Define the four corners
+        corners = [
+            (u_min, v_min),  # Top-left
+            (u_max, v_min),  # Top-right
+            (u_max, v_max),  # Bottom-right
+            (u_min, v_max),  # Bottom-left
+        ]
+
+        # Rotate each corner
+        rotated_corners = []
+        cos_angle = math.cos(angle)
+        sin_angle = math.sin(angle)
+
+        for u, v in corners:
+            # Translate to origin
+            u_translated = u - center_u
+            v_translated = v - center_v
+
+            # Rotate (counter-clockwise)
+            u_rotated = u_translated * cos_angle - v_translated * sin_angle
+            v_rotated = u_translated * sin_angle + v_translated * cos_angle
+
+            # Translate back
+            u_final = int(u_rotated + center_u)
+            v_final = int(v_rotated + center_v)
+
+            rotated_corners.append((u_final, v_final))
+
+        return rotated_corners
+
+    def _rotate_mask(self, mask: np.ndarray, angle: float, center_u: int, center_v: int) -> np.ndarray:
+        """
+        Rotates a segmentation mask around a center point.
+
+        Args:
+            mask (np.ndarray): Original mask (2D array, uint8)
+            angle (float): Rotation angle in radians (counter-clockwise)
+            center_u, center_v: Center of rotation in pixel coordinates
+
+        Returns:
+            np.ndarray: Rotated mask
+        """
+        if mask is None:
+            return None
+
+        # Convert angle to degrees for OpenCV (OpenCV uses clockwise rotation)
+        angle_degrees = -math.degrees(angle)  # Negative because CV2 rotates clockwise
+
+        # Get rotation matrix
+        height, width = mask.shape[:2]
+        rotation_matrix = cv2.getRotationMatrix2D((center_u, center_v), angle_degrees, 1.0)
+
+        # Rotate the mask
+        rotated_mask = cv2.warpAffine(mask, rotation_matrix, (width, height), flags=cv2.INTER_NEAREST)
+
+        return rotated_mask
+
+    def _translate_mask(self, mask: np.ndarray, delta_u: int, delta_v: int) -> np.ndarray:
+        """
+        Translates a segmentation mask by a given offset.
+
+        Args:
+            mask (np.ndarray): Original mask (2D array, uint8)
+            delta_u, delta_v: Translation offsets in pixels
+
+        Returns:
+            np.ndarray: Translated mask
+        """
+        if mask is None:
+            return None
+
+        # Create translation matrix
+        height, width = mask.shape[:2]
+        translation_matrix = np.float32([[1, 0, delta_u], [0, 1, delta_v]])
+
+        # Translate the mask
+        translated_mask = cv2.warpAffine(mask, translation_matrix, (width, height), flags=cv2.INTER_NEAREST)
+
+        return translated_mask
 
     def _calc_size(self) -> None:
         """
@@ -862,5 +1126,7 @@ class Object(ObjectAPI):
 
     # workspace this object can be found in
     _workspace = None
+
+    _original_mask_8u = None
 
     _verbose = False
