@@ -13,6 +13,8 @@ from .workspaces.workspace import Workspace
 from .workspaces.workspaces import Workspaces
 from .workspaces.niryo_workspace import NiryoWorkspace
 from .workspaces.niryo_workspaces import NiryoWorkspaces
+from .workspaces.widowx_workspace import WidowXWorkspace
+from .workspaces.widowx_workspaces import WidowXWorkspaces
 
 __version__ = "0.1.0"
 __author__ = "Daniel Gaida"
@@ -26,4 +28,6 @@ __all__ = [
     "Workspaces",
     "NiryoWorkspace",
     "NiryoWorkspaces",
+    "WidowXWorkspace",
+    "WidowXWorkspaces",
 ]
