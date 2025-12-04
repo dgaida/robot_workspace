@@ -84,6 +84,9 @@
   \node[concrete, below=1.5cm of workspace] (niryows) {NiryoWorkspace\\{\scriptsize Concrete}};
   \node[concrete, below=1.5cm of workspaces] (niryowss) {NiryoWorkspaces\\{\scriptsize Concrete}};
 
+  \node[concrete, below right=-0.1cm and -2.50cm of niryows] (widowxws) {WidowXWorkspace\\{\scriptsize Concrete}};
+  \node[concrete, below right=-0.1cm and -2.50cm of niryowss] (widowxwss) {WidowXWorkspaces\\{\scriptsize Concrete}};
+
   % ===== Relationships: Inheritance =====
   \draw[inherit] (object) -- node[right, label, font=\scriptsize] {inherits} (objectapi);
   \draw[inherit] (niryows) -- node[right, label, font=\scriptsize] {inherits} (workspace);
@@ -100,6 +103,7 @@
   \draw[arrow] (objects) -- node[left, label, font=\scriptsize] {uses for\\spatial queries} (location);
   \draw[arrow] (niryows.west) -- ++(-1.0,0) |- node[left, label, font=\scriptsize] {creates} (poseobject.west);
   \draw[arrow] (niryowss) -- node[above, label, font=\scriptsize] {creates} (niryows);
+  \draw[arrow] (widowxwss) -- node[above, label, font=\scriptsize] {creates} (widowxws);
 
   % ===== Data Flow =====
   %\draw[arrow, blue, very thick] (poseobject.south) to[bend right=20] node[left, label, font=\scriptsize] {coordinate\\transform} (workspace.north);
@@ -110,7 +114,7 @@
         inner sep=0.4cm] (objlayer) {};
   \node[above=0.1cm of objlayer] {\textbf{Object Representation Layer}};
 
-  \node[draw, dashed, thick, fit=(workspace) (workspaces) (niryows) (niryowss),
+  \node[draw, dashed, thick, fit=(workspace) (workspaces) (niryows) (niryowss) (widowxws) (widowxwss),
         inner sep=0.4cm] (wslayer) {};
   \node[below=0.1cm of wslayer] {\textbf{Workspace Management Layer}};
 
