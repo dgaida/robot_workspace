@@ -17,6 +17,7 @@ import math
 import json
 import time
 import base64
+import logging
 
 
 class Object(ObjectAPI):
@@ -71,6 +72,7 @@ class Object(ObjectAPI):
         self._label = label
         self._workspace = workspace
         self._verbose = verbose
+        self._logger = logging.getLogger("robot_workspace")
 
         if self._workspace.img_shape() is None:
             raise ValueError("Object has no image shape. This probably means that the Niryo Workspace was not detected.")
@@ -170,8 +172,8 @@ class Object(ObjectAPI):
             pose_com (PoseObjectPNP): New pose for the object's center of mass
         """
         if self.verbose():
-            print(f"Setting new pose_com: {pose_com}")
-            print(f"Old pose_com: {self._pose_com}")
+            self._logger.debug(f"Setting new pose_com: {pose_com}")
+            self._logger.debug(f"Old pose_com: {self._pose_com}")
 
         # Calculate rotation difference (only around z-axis/yaw)
         old_yaw = self._gripper_rotation
@@ -179,7 +181,7 @@ class Object(ObjectAPI):
         delta_yaw = new_yaw - old_yaw
 
         if self.verbose():
-            print(f"Rotation change: {math.degrees(delta_yaw):.2f} degrees")
+            self._logger.debug(f"Rotation change: {math.degrees(delta_yaw):.2f} degrees")
 
         # Get image dimensions
         img_width, img_height, _ = self._workspace.img_shape()
@@ -224,7 +226,7 @@ class Object(ObjectAPI):
         translation_v = new_center_v - old_center_v
 
         if self.verbose():
-            print(f"Translation: u={translation_u}, v={translation_v}")
+            self._logger.debug(f"Translation: u={translation_u}, v={translation_v}")
 
         # Apply translation to bounding box
         new_u_min += translation_u
@@ -243,8 +245,8 @@ class Object(ObjectAPI):
         new_v_max = max(0, min(new_v_max, img_height - 1))
 
         if self.verbose():
-            print(f"Old bbox: ({old_u_min}, {old_v_min}) to ({old_u_max}, {old_v_max})")
-            print(f"New bbox: ({new_u_min}, {new_v_min}) to ({new_u_max}, {new_v_max})")
+            self._logger.debug(f"Old bbox: ({old_u_min}, {old_v_min}) to ({old_u_max}, {old_v_max})")
+            self._logger.debug(f"New bbox: ({new_u_min}, {new_v_min}) to ({new_u_max}, {new_v_max})")
 
         # Reinitialize object properties with new bounding box and rotated mask
         self._init_object_properties(new_u_min, new_v_min, new_u_max, new_v_max, rotated_mask)
@@ -393,7 +395,6 @@ class Object(ObjectAPI):
         """
         try:
             # Convert list to tuple if necessary
-            # print(shape, dtype)
             if isinstance(shape, list):
                 shape = tuple(shape)
 
@@ -416,6 +417,7 @@ class Object(ObjectAPI):
         Returns:
             Object: Reconstructed object instance or None if reconstruction fails
         """
+        logger = logging.getLogger("robot_workspace")
         try:
             # Check if we have the new format (from to_dict) or old format (with bbox key)
             if "bbox" in data:
@@ -462,7 +464,7 @@ class Object(ObjectAPI):
             return obj
 
         except Exception as e:
-            print(f"Error reconstructing object from dict: {e}")
+            logger.error(f"Error reconstructing object from dict: {e}")
             return None
 
     @classmethod
@@ -477,11 +479,12 @@ class Object(ObjectAPI):
         Returns:
             Object: Reconstructed object instance or None if reconstruction fails
         """
+        logger = logging.getLogger("robot_workspace")
         try:
             data = json.loads(json_str)
             return cls.from_dict(data, workspace)
         except Exception as e:
-            print(f"Error parsing JSON: {e}")
+            logger.error(f"Error parsing JSON: {e}")
             return None
 
     # *** PUBLIC STATIC/CLASS GET methods ***
@@ -661,7 +664,6 @@ class Object(ObjectAPI):
             ratio_w, ratio_h = self._calc_size_of_pixel_in_m()
             (width, height, nchannels) = self._workspace.img_shape()
             area_img = width * height  # number of square pixels that the image has
-            # print(area, ratio_w, area_img)
             # area of object in pixels / area of workspace in pixels *
             # * width of workspace in m * height of workspace in m
             self._size_m2 = float(area) / float(area_img) * ratio_w * ratio_h
@@ -679,7 +681,7 @@ class Object(ObjectAPI):
         ratio_h = float(self._height_m / self._height)
 
         if self.verbose():
-            print(ratio_h, ratio_w)
+            self._logger.debug(f"Pixel size ratios - width: {ratio_w}, height: {ratio_h}")
 
         return ratio_w, ratio_h
 
@@ -694,15 +696,11 @@ class Object(ObjectAPI):
         """
         ratio_w, ratio_h = self._calc_size_of_pixel_in_m()
 
-        # print(ratio_h, ratio_w, width, height, self._height, self._width, self._height_m, self._width_m)
-
         # from pixel coordinates get relative coordinates
         self._width, self._height = self._calc_rel_coordinates(width, height)
 
         self._width_m = self._width * ratio_w
         self._height_m = self._height * ratio_h
-
-        # print(self._height_m, self._width_m)
 
     def _calc_pose_from_uv_coords(self, u: int, v: int) -> tuple["PoseObjectPNP", float, float]:
         """

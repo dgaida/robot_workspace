@@ -2,6 +2,7 @@
 # final
 
 import inspect
+import logging
 
 
 def log_start_end(verbose: bool = True):
@@ -17,11 +18,12 @@ def log_start_end(verbose: bool = True):
 
     def decorator(func):
         def wrapper(*args, **kwargs):
+            logger = logging.getLogger("robot_workspace")
             if verbose:
-                print(f"START {func.__name__}")
+                logger.debug(f"START {func.__name__}")
             result = func(*args, **kwargs)
             if verbose:
-                print(f"END {func.__name__}")
+                logger.debug(f"END {func.__name__}")
             return result
 
         return wrapper
@@ -36,6 +38,7 @@ def log_start_end_cls():
 
     def decorator(func):
         def wrapper(self, *args, **kwargs):
+            logger = logging.getLogger("robot_workspace")
             # Get verbose attribute from the instance or class
             verbose = getattr(self, "_verbose", False)
             class_name = None
@@ -47,11 +50,11 @@ def log_start_end_cls():
                 # Retrieve line number where the function is defined
                 func_line_number = inspect.getsourcelines(func)[1]
                 # Log start message
-                print(f"START {func.__name__} (Class: {class_name}, Line: {func_line_number})")
+                logger.debug(f"START {func.__name__} (Class: {class_name}, Line: {func_line_number})")
             result = func(self, *args, **kwargs)
             if verbose:
                 # Log end message
-                print(f"END {func.__name__} (Class: {class_name}, Line: {func_line_number})")
+                logger.debug(f"END {func.__name__} (Class: {class_name}, Line: {func_line_number})")
             return result
 
         return wrapper
