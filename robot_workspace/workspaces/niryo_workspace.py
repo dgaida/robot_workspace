@@ -10,6 +10,7 @@ from ..config import WorkspaceConfig
 
 from typing import Optional
 import math
+import logging
 
 # if TYPE_CHECKING:
 #     from ..environment import Environment
@@ -32,8 +33,8 @@ class NiryoWorkspace(Workspace):
             verbose:
         """
         self._environment = environment
-
         self._config = config
+        self._logger = logging.getLogger("robot_workspace")
 
         super().__init__(workspace_id, verbose)
 
@@ -103,12 +104,14 @@ class NiryoWorkspace(Workspace):
             PoseObjectPNP: Pose of the point in world coordinates of the robot.
         """
         if self.verbose():
-            print(workspace_id, u_rel, v_rel, yaw)
+            self._logger.debug(
+                f"transform_camera2world_coords input - workspace_id: {workspace_id}, u_rel: {u_rel}, v_rel: {v_rel}, yaw: {yaw}"
+            )
 
         obj_coords = self._environment.get_robot_target_pose_from_rel(workspace_id, u_rel, v_rel, yaw)
 
         if self.verbose():
-            print("transform_camera2world_coords:", obj_coords)
+            self._logger.debug(f"transform_camera2world_coords output: {obj_coords}")
 
         return obj_coords
 
@@ -127,8 +130,8 @@ class NiryoWorkspace(Workspace):
         self._xy_lr_wc = self.transform_camera2world_coords(self._id, 1.0, 1.0)
 
         if self.verbose():
-            print(self._xy_ul_wc, self._xy_ll_wc)
-            print(self._xy_ur_wc, self._xy_lr_wc)
+            self._logger.debug(f"Workspace corners - UL: {self._xy_ul_wc}, LL: {self._xy_ll_wc}")
+            self._logger.debug(f"Workspace corners - UR: {self._xy_ur_wc}, LR: {self._xy_lr_wc}")
 
     @log_start_end_cls()
     def _set_observation_pose(self) -> None:
@@ -216,7 +219,7 @@ class NiryoWorkspace(Workspace):
         else:
             self._observation_pose = None
             if self._verbose:
-                print(f"Warning: No observation pose defined for workspace '{self._id}'")
+                self._logger.warning(f"No observation pose defined for workspace '{self._id}'")
 
     # *** PRIVATE STATIC/CLASS methods ***
 
@@ -228,3 +231,4 @@ class NiryoWorkspace(Workspace):
     # *** PRIVATE variables ***
 
     _environment = None
+    _logger = None

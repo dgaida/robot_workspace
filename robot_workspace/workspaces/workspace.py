@@ -6,6 +6,7 @@
 from ..common.logger import log_start_end_cls
 
 from abc import ABC, abstractmethod
+import logging
 
 from typing import TYPE_CHECKING
 from ..objects.pose_object import PoseObjectPNP
@@ -40,6 +41,7 @@ class Workspace(ABC):
         self._id = workspace_id
         # self._environment = environment
         self._verbose = verbose
+        self._logger = logging.getLogger("robot_workspace")
 
         self._set_observation_pose()
 
@@ -72,7 +74,7 @@ class Workspace(ABC):
         #  is visible. in niryo_framegrabber started this
 
         if self.verbose():
-            print("is_visible:", camera_pose, self._observation_pose)
+            self._logger.debug(f"is_visible: {camera_pose}, {self._observation_pose}")
 
         # TODO: hier sollte eigentlich approx_eq genutzt werden, aber die Winkel, die vom Roboter zurück gegeben werden
         #  stimmen nicht
@@ -155,7 +157,7 @@ class Workspace(ABC):
         self._xy_center_wc = self._xy_lr_wc.copy_with_offsets(-dx / 2.0, dy / 2.0)
 
         if self.verbose():
-            print("_calc_center_of_workspace:", self._xy_center_wc, self._xy_ll_wc.x, self._xy_ur_wc.x)
+            self._logger.debug(f"_calc_center_of_workspace: {self._xy_center_wc}, {self._xy_ll_wc.x}, {self._xy_ur_wc.x}")
 
     # *** PRIVATE STATIC/CLASS methods ***
 
@@ -278,3 +280,4 @@ class Workspace(ABC):
     _observation_pose = None
 
     _verbose = False
+    _logger = None

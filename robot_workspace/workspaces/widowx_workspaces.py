@@ -5,6 +5,7 @@
 from .workspaces import Workspaces
 from .widowx_workspace import WidowXWorkspace
 from typing import TYPE_CHECKING, Optional
+import logging
 
 if TYPE_CHECKING:
     from .workspace import Workspace
@@ -35,6 +36,7 @@ class WidowXWorkspaces(Workspaces):
             verbose: Enable verbose output
         """
         super().__init__(verbose)
+        self._logger = logging.getLogger("robot_workspace")
 
         if not environment.use_simulation():
             # Real robot - can define multiple workspaces
@@ -53,7 +55,7 @@ class WidowXWorkspaces(Workspaces):
             super().append_workspace(workspace)
 
         if verbose:
-            print(f"Initialized {len(self)} WidowX workspaces: {self.get_workspace_ids()}")
+            self._logger.info(f"Initialized {len(self)} WidowX workspaces: {self.get_workspace_ids()}")
 
     # *** PUBLIC SET methods ***
 
@@ -120,3 +122,4 @@ class WidowXWorkspaces(Workspaces):
     # *** PUBLIC properties ***
 
     # *** PRIVATE variables ***
+    _logger = None

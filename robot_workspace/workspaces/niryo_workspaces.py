@@ -5,6 +5,7 @@
 from .workspaces import Workspaces
 from .niryo_workspace import NiryoWorkspace
 from typing import TYPE_CHECKING, Optional
+import logging
 
 if TYPE_CHECKING:
     from .workspace import Workspace
@@ -37,6 +38,7 @@ class NiryoWorkspaces(Workspaces):
             ... )
         """
         super().__init__(verbose)
+        self._logger = logging.getLogger("robot_workspace")
 
         if config_path:
             self._init_from_config(environment, config_path, verbose)
@@ -85,7 +87,7 @@ class NiryoWorkspaces(Workspaces):
             super().append_workspace(workspace)
 
         if verbose:
-            print(f"Initialized {len(self)} workspaces: {self.get_workspace_ids()}")
+            self._logger.info(f"Initialized {len(self)} workspaces: {self.get_workspace_ids()}")
 
     def _init_from_config(self, environment, config_path: str, verbose: bool):
         """Initialize workspaces from configuration file."""
@@ -102,8 +104,9 @@ class NiryoWorkspaces(Workspaces):
             super().append_workspace(workspace)
 
         if verbose:
-            print(f"Initialized {len(self)} workspaces from config: " f"{self.get_workspace_ids()}")
+            self._logger.info(f"Initialized {len(self)} workspaces from config: {self.get_workspace_ids()}")
 
     # *** PUBLIC properties ***
 
     # *** PRIVATE variables ***
+    _logger = None

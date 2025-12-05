@@ -5,6 +5,7 @@ from ..common.logger import log_start_end_cls
 
 from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
+import logging
 
 """
 TODO: APPLY SAME CHANGES AS niryo_workspace.py:
@@ -33,6 +34,7 @@ class WidowXWorkspace(Workspace):
             verbose: enable verbose output
         """
         self._environment = environment
+        self._logger = logging.getLogger("robot_workspace")
 
         super().__init__(workspace_id, verbose)
 
@@ -61,7 +63,9 @@ class WidowXWorkspace(Workspace):
             PoseObjectPNP: Pose of the point in world coordinates of the robot.
         """
         if self.verbose():
-            print(workspace_id, u_rel, v_rel, yaw)
+            self._logger.debug(
+                f"transform_camera2world_coords input - workspace_id: {workspace_id}, u_rel: {u_rel}, v_rel: {v_rel}, yaw: {yaw}"
+            )
 
         # For WidowX, we need to handle coordinate transformation differently
         # since it uses a third-person camera rather than gripper-mounted camera
@@ -88,7 +92,7 @@ class WidowXWorkspace(Workspace):
         obj_coords = PoseObjectPNP(x, y, z, roll, pitch, yaw)
 
         if self.verbose():
-            print("transform_camera2world_coords:", obj_coords)
+            self._logger.debug(f"transform_camera2world_coords output: {obj_coords}")
 
         return obj_coords
 
@@ -110,8 +114,8 @@ class WidowXWorkspace(Workspace):
         self._xy_lr_wc = self.transform_camera2world_coords(self._id, 1.0, 1.0)
 
         if self.verbose():
-            print(self._xy_ul_wc, self._xy_ll_wc)
-            print(self._xy_ur_wc, self._xy_lr_wc)
+            self._logger.debug(f"Workspace corners - UL: {self._xy_ul_wc}, LL: {self._xy_ll_wc}")
+            self._logger.debug(f"Workspace corners - UR: {self._xy_ur_wc}, LR: {self._xy_lr_wc}")
 
     @log_start_end_cls()
     def _set_observation_pose(self) -> None:
@@ -193,7 +197,7 @@ class WidowXWorkspace(Workspace):
         else:
             self._observation_pose = None
             if self._verbose:
-                print(f"Warning: No observation pose defined for workspace '{self._id}'")
+                self._logger.warning(f"No observation pose defined for workspace '{self._id}'")
 
     # *** PRIVATE STATIC/CLASS methods ***
 
@@ -205,3 +209,4 @@ class WidowXWorkspace(Workspace):
     # *** PRIVATE variables ***
 
     _environment = None
+    _logger = None
