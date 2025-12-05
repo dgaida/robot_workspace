@@ -6,6 +6,13 @@ from ..common.logger import log_start_end_cls
 from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
 
+"""
+TODO: APPLY SAME CHANGES AS niryo_workspace.py:
+1. Add 'config' parameter to __init__
+2. Add from_config() class method
+3. Add config check at beginning of _set_observation_pose()
+"""
+
 
 class WidowXWorkspace(Workspace):
     """

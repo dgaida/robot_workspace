@@ -6,5 +6,5 @@ dependencies:
   - python=3.11.9
   - py-opencv
   - opencv
-  - pip
-    - pyniryo
+  - pip:
+      - pyniryo

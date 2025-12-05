@@ -6,8 +6,9 @@ from ..common.logger import log_start_end_cls
 
 from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
+from ..config import WorkspaceConfig
 
-# from typing import TYPE_CHECKING
+from typing import Optional
 import math
 
 # if TYPE_CHECKING:
@@ -21,7 +22,7 @@ class NiryoWorkspace(Workspace):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, workspace_id: str, environment, verbose: bool = False):  # : "Environment"
+    def __init__(self, workspace_id: str, environment, verbose: bool = False, config: Optional["WorkspaceConfig"] = None):
         """
         Inits the workspace.
 
@@ -32,11 +33,54 @@ class NiryoWorkspace(Workspace):
         """
         self._environment = environment
 
+        self._config = config
+
         super().__init__(workspace_id, verbose)
 
     # *** PUBLIC GET methods ***
 
     # *** PUBLIC methods ***
+
+    @classmethod
+    def from_config(cls, config: "WorkspaceConfig", environment, verbose: bool = False) -> "NiryoWorkspace":
+        """
+        Create NiryoWorkspace from configuration.
+
+        Args:
+            config: WorkspaceConfig instance
+            environment: Environment object
+            verbose: Enable verbose output
+
+        Returns:
+            NiryoWorkspace instance
+
+        Example:
+            >>> from robot_workspace.config import ConfigManager
+            >>> config_mgr = ConfigManager()
+            >>> config_mgr.load_from_yaml('config/niryo_config.yaml')
+            >>> ws_config = config_mgr.get_workspace_config('niryo_ws')
+            >>> workspace = NiryoWorkspace.from_config(ws_config, environment)
+        """
+        workspace = cls(config.id, environment, verbose, config)
+
+        # Override observation pose from config if available
+        if config.observation_pose:
+            from ..objects.pose_object import PoseObjectPNP
+
+            workspace._observation_pose = PoseObjectPNP(
+                x=config.observation_pose.x,
+                y=config.observation_pose.y,
+                z=config.observation_pose.z,
+                roll=config.observation_pose.roll,
+                pitch=config.observation_pose.pitch,
+                yaw=config.observation_pose.yaw,
+            )
+
+        # Override image shape from config if available
+        if config.image_shape:
+            workspace.set_img_shape(config.image_shape)
+
+        return workspace
 
     # @log_start_end_cls()
     def transform_camera2world_coords(
@@ -95,6 +139,18 @@ class NiryoWorkspace(Workspace):
 
         Supports multiple workspace configurations.
         """
+        # Check if config is available and use it
+        if self._config and self._config.observation_pose:
+            self._observation_pose = PoseObjectPNP(
+                x=self._config.observation_pose.x,
+                y=self._config.observation_pose.y,
+                z=self._config.observation_pose.z,
+                roll=self._config.observation_pose.roll,
+                pitch=self._config.observation_pose.pitch,
+                yaw=self._config.observation_pose.yaw,
+            )
+            return
+
         if self._id == "niryo_ws" or self._id == "niryo_ws2":
             self._observation_pose = PoseObjectPNP(  # position for the robot to watch the workspace in the real world
                 x=0.173 - 0.0,

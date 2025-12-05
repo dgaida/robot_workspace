@@ -9,6 +9,13 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from .workspace import Workspace
 
+"""
+TODO: APPLY SAME CHANGES AS niryo_workspaces.py:
+1. Add 'config_path' parameter to __init__
+2. Add _init_default() method
+3. Add _init_from_config() method
+"""
+
 
 class WidowXWorkspaces(Workspaces):
     """

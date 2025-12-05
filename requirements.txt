@@ -1,2 +1,4 @@
 opencv-python>=4.5.0
 pyniryo
+interbotix-xs-modules>=0.1.0
+pyyaml>=6.0

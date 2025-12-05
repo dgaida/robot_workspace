@@ -1,0 +1,82 @@
+robots:
+  widowx:
+    default_workspace_id: widowx_ws_main
+
+    workspaces:
+      - id: widowx_ws
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: 0.0
+          z: 0.25
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+      - id: widowx_ws_main
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: 0.0
+          z: 0.25
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+      - id: widowx_ws_left
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: 0.15
+          z: 0.25
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+      - id: widowx_ws_right
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: -0.15
+          z: 0.25
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+      - id: widowx_ws_extended
+        robot_type: widowx
+        observation_pose:
+          x: 0.40
+          y: 0.0
+          z: 0.20
+          roll: 0.0
+          pitch: 0.3
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+    simulation_workspaces:
+      - id: gazebo_widowx_1
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: 0.0
+          z: 0.30
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
+
+      - id: gazebo_widowx_2
+        robot_type: widowx
+        observation_pose:
+          x: 0.30
+          y: 0.15
+          z: 0.30
+          roll: 0.0
+          pitch: 0.0
+          yaw: 0.0
+        image_shape: [1920, 1080, 3]
