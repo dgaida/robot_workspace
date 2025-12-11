@@ -78,7 +78,7 @@ class NiryoWorkspaces(Workspaces):
     def _init_default(self, environment, verbose: bool):
         """Initialize with default hardcoded workspaces."""
         if not environment.use_simulation():
-            workspace_ids = ["niryo_ws2", "niryo_ws_right"]
+            workspace_ids = ["niryo_ws2"]  # , "niryo_ws_right"]
         else:
             workspace_ids = ["gazebo_1", "gazebo_2"]
 
