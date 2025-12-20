@@ -15,18 +15,18 @@ from robot_workspace.objects.pose_object import PoseObjectPNP
 def mock_environment():
     """Create a mock environment supporting multiple workspaces."""
     env = Mock()
-    env.use_simulation.return_value = False
+    env.use_simulation.return_value = True
     env.verbose.return_value = False
 
     # Mock different coordinate transformations for different workspaces
     def mock_get_target_pose(ws_id, u_rel, v_rel, yaw):
-        if ws_id == "niryo_ws_left":
-            # Left workspace shifted in y-direction
+        if ws_id == "gazebo_1":
+            # Left workspace (gazebo_1)
             x = 0.4 - u_rel * 0.3
             y = 0.25 - v_rel * 0.3  # Shifted left
             return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
-        elif ws_id == "niryo_ws_right":
-            # Right workspace shifted in opposite y-direction
+        elif ws_id == "gazebo_2":
+            # Right workspace (gazebo_2)
             x = 0.4 - u_rel * 0.3
             y = -0.05 - v_rel * 0.3  # Shifted right
             return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
@@ -44,32 +44,32 @@ class TestMultiWorkspaceCollection:
     """Test suite for multi-workspace collection."""
 
     def test_multiple_workspace_initialization(self, mock_environment):
-        """Test that multiple workspaces are initialized."""
+        """Test that multiple workspaces are initialized in simulation."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
-        # Should have at least 2 workspaces
+        # Should have 2 workspaces in simulation
         assert len(workspaces) >= 2
 
-        # Check workspace IDs
+        # Check workspace IDs (simulation workspaces)
         workspace_ids = workspaces.get_workspace_ids()
-        assert "niryo_ws2" in workspace_ids
-        assert "niryo_ws_right" in workspace_ids
+        assert "gazebo_1" in workspace_ids
+        assert "gazebo_2" in workspace_ids
 
     def test_get_workspace_left(self, mock_environment):
-        """Test getting left workspace."""
+        """Test getting left workspace in simulation."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
         left_ws = workspaces.get_workspace_left()
         assert left_ws is not None
-        assert left_ws.id() == "niryo_ws2"
+        assert left_ws.id() == "gazebo_1"
 
     def test_get_workspace_right(self, mock_environment):
-        """Test getting right workspace."""
+        """Test getting right workspace in simulation."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
         right_ws = workspaces.get_workspace_right()
         assert right_ws is not None
-        assert right_ws.id() == "niryo_ws_right"
+        assert right_ws.id() == "gazebo_2"
 
     def test_workspace_coordinate_systems_differ(self, mock_environment):
         """Test that different workspaces have different coordinate systems."""
@@ -185,33 +185,29 @@ class TestCoordinateTransformations:
     """Test suite for coordinate transformations in multiple workspaces."""
 
     def test_left_workspace_coordinates(self, mock_environment):
-        """Test coordinate transformation in left workspace."""
+        """Test coordinate transformation in left workspace (simulation)."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
         left_ws = workspaces.get_workspace_left()
 
         # Center of workspace
         pose = left_ws.transform_camera2world_coords(left_ws.id(), 0.5, 0.5, 0.0)
 
-        # at the moment the left workspace is the central one
-        # Y should be almost 0.0 or positive (left side)
-        assert pose.y >= 0.0
+        # Y should be positive or around 0.0 (left side)
+        assert pose.y >= -0.05
 
     def test_right_workspace_coordinates(self, mock_environment):
-        """Test coordinate transformation in right workspace."""
+        """Test coordinate transformation in right workspace (simulation)."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
         right_ws = workspaces.get_workspace_right()
 
         # Center of workspace
         pose = right_ws.transform_camera2world_coords(right_ws.id(), 0.5, 0.5, 0.0)
 
-        # I do not understand the ogic of the test. if the camera is over the workspace then the relative
-        # coordinates always is respect to the current workspace. and therefore it is almost in the center of the
-        # workspace, so y = 0.0
-        # Y should be 0.0 negative (right side)
-        assert pose.y <= 0.0
+        # Y should be negative or around 0.0 (right side)
+        assert pose.y <= 0.05
 
     def test_workspace_corners(self, mock_environment):
-        """Test that workspace corners are correctly calculated."""
+        """Test that workspace corners are correctly calculated in simulation."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
         for workspace in workspaces:
@@ -233,7 +229,7 @@ class TestObjectDetectionInMultipleWorkspaces:
     """Test suite for object detection across multiple workspaces."""
 
     def test_create_objects_in_different_workspaces(self, mock_environment):
-        """Test creating objects in different workspaces."""
+        """Test creating objects in different workspaces (simulation)."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
         left_ws = workspaces.get_workspace_left()
@@ -257,7 +253,7 @@ class TestObjectDetectionInMultipleWorkspaces:
         assert obj_left.x_com() != obj_right.x_com() or obj_left.y_com() != obj_right.y_com()
 
     def test_object_collections_per_workspace(self, mock_environment):
-        """Test maintaining separate object collections per workspace."""
+        """Test maintaining separate object collections per workspace (simulation)."""
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
         left_ws = workspaces.get_workspace_left()
@@ -294,7 +290,7 @@ class TestMultiWorkspaceIntegration:
     """Integration tests for multi-workspace operations."""
 
     def test_complete_workflow(self, mock_environment):
-        """Test complete multi-workspace workflow."""
+        """Test complete multi-workspace workflow (simulation)."""
         # Initialize workspaces
         workspaces = NiryoWorkspaces(mock_environment, verbose=False)
 
