@@ -67,19 +67,35 @@ class WidowXWorkspace(Workspace):
                 f"transform_camera2world_coords input - workspace_id: {workspace_id}, u_rel: {u_rel}, v_rel: {v_rel}, yaw: {yaw}"
             )
 
+        # Use environment transformation if available (like NiryoWorkspace does)
+        if hasattr(self, "_environment") and self._environment is not None:
+            # Delegate to environment's transformation
+            obj_coords = self._environment.get_robot_target_pose_from_rel(workspace_id, u_rel, v_rel, yaw)
+
+            if self.verbose():
+                print("transform_camera2world_coords:", obj_coords)
+
+            return obj_coords
+
         # For WidowX, we need to handle coordinate transformation differently
         # since it uses a third-person camera rather than gripper-mounted camera
 
-        # Get workspace bounds in world coordinates
-        # Map relative coordinates to world coordinates using linear interpolation
-        x_min = self._xy_lr_wc.x  # Lower right (farther from robot)
-        x_max = self._xy_ul_wc.x  # Upper left (closer to robot)
-        y_min = self._xy_lr_wc.y  # Lower right (rightmost)
-        y_max = self._xy_ul_wc.y  # Upper left (leftmost)
+        # Fallback: Linear interpolation using workspace corners
+        # This path is used when corners are already initialized
+        if self._xy_ul_wc is not None and self._xy_lr_wc is not None:
+            x_min = self._xy_lr_wc.x  # Lower right (farther from robot)
+            x_max = self._xy_ul_wc.x  # Upper left (closer to robot)
+            y_min = self._xy_lr_wc.y  # Lower right (rightmost)
+            y_max = self._xy_ul_wc.y  # Upper left (leftmost)
 
-        # Linear interpolation
-        x = x_max - u_rel * (x_max - x_min)  # u_rel: 0 (top) -> 1 (bottom)
-        y = y_max - v_rel * (y_max - y_min)  # v_rel: 0 (left) -> 1 (right)
+            # Linear interpolation
+            x = x_max - u_rel * (x_max - x_min)  # u_rel: 0 (top) -> 1 (bottom)
+            y = y_max - v_rel * (y_max - y_min)  # v_rel: 0 (left) -> 1 (right)
+        else:
+            # During initialization, use default workspace bounds
+            # These are typical WidowX workspace dimensions
+            x = 0.5 - u_rel * 0.4  # x: 0.5 to 0.1
+            y = 0.2 - v_rel * 0.4  # y: 0.2 to -0.2
 
         # Default height above workspace
         z = 0.05  # 5cm above workspace surface
