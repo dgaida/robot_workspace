@@ -161,7 +161,7 @@ class TestObjectModel:
         """Test exporting model to dictionary"""
         obj = ObjectModel(label="test_object", x=100.0, y=150.0, width_m=0.05, height_m=0.08)
 
-        obj_dict = obj.dict()
+        obj_dict = obj.model_dump()
 
         assert obj_dict == {"label": "test_object", "x": 100.0, "y": 150.0, "width_m": 0.05, "height_m": 0.08}
 
@@ -169,7 +169,7 @@ class TestObjectModel:
         """Test exporting model to JSON"""
         obj = ObjectModel(label="test_object", x=100.0, y=150.0, width_m=0.05, height_m=0.08)
 
-        json_str = obj.json()
+        json_str = obj.model_dump_json()
 
         assert isinstance(json_str, str)
         assert "test_object" in json_str
@@ -191,7 +191,7 @@ class TestObjectModel:
         """Test parsing model from JSON string"""
         json_str = '{"label": "sphere", "x": 300.0, "y": 350.0, "width_m": 0.15, "height_m": 0.15}'
 
-        obj = ObjectModel.parse_raw(json_str)
+        obj = ObjectModel.model_validate_json(json_str)
 
         assert obj.label == "sphere"
         assert obj.x == 300.0
@@ -214,7 +214,7 @@ class TestObjectModel:
         """Test model copying"""
         obj1 = ObjectModel(label="original", x=100.0, y=150.0, width_m=0.05, height_m=0.08)
 
-        obj2 = obj1.copy(update={"label": "copy"})
+        obj2 = obj1.model_copy(update={"label": "copy"})
 
         assert obj1.label == "original"
         assert obj2.label == "copy"

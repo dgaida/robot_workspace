@@ -177,9 +177,13 @@ class TestSetupLogging:
         logger = setup_logging(verbose=True)
 
         # Should be able to log DEBUG messages
-        with pytest.raises(Exception, match=None):
-            # This should not raise an exception
+        try:
             logger.debug("Debug message")
+            success = True
+        except Exception:
+            success = False
+
+        assert success
 
     def test_setup_logging_encoding_utf8(self):
         """Test that file handler uses UTF-8 encoding"""

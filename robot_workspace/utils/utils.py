@@ -17,9 +17,15 @@ def setup_logging(verbose: bool = False, log_file: Optional[str] = None) -> logg
 
     logger = logging.getLogger("robot_workspace")
 
-    # Avoid duplicate handlers
+    # FIXED: Check if logger already exists AND update its level
     if logger.handlers:
         print("utils.py: using an already existent logger")
+        # Update the level even if logger exists
+        level = logging.DEBUG if verbose else logging.INFO
+        logger.setLevel(level)
+        # Update handler levels too
+        for handler in logger.handlers:
+            handler.setLevel(level)
         return logger
 
     level = logging.DEBUG if verbose else logging.INFO
