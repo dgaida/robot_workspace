@@ -1,0 +1,51 @@
+graph TB
+    subgraph "Vision System"
+        A[Camera Image] --> B[vision_detect_segment]
+        B --> C[Detections<br/>bounding boxes<br/>labels<br/>masks]
+    end
+
+    subgraph "robot_workspace Framework"
+        C --> D[Object Creation]
+        D --> E[Object<br/>label, bbox, mask<br/>physical properties]
+
+        F[Workspace<br/>calibration<br/>corners] --> G[Coordinate Transform]
+
+        E --> G
+        G --> H[World Coordinates<br/>x, y, z in meters]
+
+        E --> I[PoseObjectPNP<br/>6-DOF pose<br/>position + orientation]
+        H --> I
+
+        E --> J[Objects Collection]
+        J --> K[Spatial Queries<br/>nearest, left/right<br/>largest/smallest]
+    end
+
+    subgraph "Robot Manipulation"
+        I --> L[robot_environment]
+        K --> L
+        L --> M[Pick & Place<br/>Operations]
+    end
+
+    subgraph "Natural Language Control"
+        M --> N[robot_mcp]
+        N --> O["LLM interprets:<br/>'pick up the pencil'"]
+    end
+
+    style A fill:#e1f5ff
+    style B fill:#e1f5ff
+    style E fill:#fff4e1
+    style G fill:#fff4e1
+    style I fill:#fff4e1
+    style J fill:#fff4e1
+    style M fill:#e8f5e9
+    style O fill:#f3e5f5
+
+    classDef visionClass fill:#e1f5ff,stroke:#0288d1,stroke-width:2px
+    classDef workspaceClass fill:#fff4e1,stroke:#f57c00,stroke-width:2px
+    classDef robotClass fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef llmClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+
+    class A,B,C visionClass
+    class D,E,F,G,H,I,J,K workspaceClass
+    class L,M robotClass
+    class N,O llmClass

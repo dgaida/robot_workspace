@@ -9,7 +9,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-A comprehensive Python framework for robotic workspace management with vision-based object detection and coordinate transformations. This package provides the essential data structures and utilities for managing robot workspaces, detecting objects, and transforming coordinates between camera and world frames.
+A Python framework that bridges the gap between camera images and physical robot manipulation. It provides the essential data structures and coordinate transformations needed to convert detected objects from vision systems into actionable pick-and-place targets for robotic arms. The framework handles workspace calibration, object representation with physical properties, and spatial reasoning—enabling vision-equipped robots to understand "where" objects are and "how" to grasp them in real-world coordinates.
 
 ---
 
@@ -22,8 +22,7 @@ The `robot_workspace` package provides a complete framework for managing robotic
 - **🗺️ Workspace Management**: Define and manage multiple workspaces with different configurations
 - **🔍 Spatial Queries**: Find objects by location, size, proximity, or custom criteria
 - **💾 Serialization**: JSON-based serialization for data persistence and communication
-- **🤖 Robot Support**: Native support for Niryo Ned2 and WidowX 250 6DOF robots (extensible to other platforms)
-- **🧪 Mock Environment**: Full testing and demo support without requiring hardware
+- **🤖 Robot Support**: Native support for Niryo Ned2 and WidowX 250 6DOF robots (real and simulation, extensible to other platforms)
 
 ---
 
@@ -159,104 +158,85 @@ This installs additional development tools:
 
 ## 🚀 Quick Start
 
-### Working with Pose Objects
+### Core Concepts
 
+The repository provides three main capabilities:
+
+1. **Pose Representation** - 6-DOF poses (position + orientation) for objects and robot targets
+2. **Object Management** - Detected objects with physical properties, positions, and spatial queries
+3. **Coordinate Transformation** - Convert camera coordinates to robot world coordinates
+
+### Essential Usage
 ```python
-from robot_workspace.objects.pose_object import PoseObjectPNP
-
-# Create a 6-DOF pose
-pose = PoseObjectPNP(
-    x=0.2, y=0.1, z=0.3,
-    roll=0.0, pitch=1.57, yaw=0.0
-)
-
-print(pose)  # Display position and orientation
-
-# Pose arithmetic
-offset = PoseObjectPNP(x=0.05, y=0.02, z=0.0)
-new_pose = pose + offset
-
-# Convert to different representations
-pose_list = pose.to_list()
-quaternion = pose.quaternion
-transform_matrix = pose.to_transformation_matrix()
-```
-
-### Managing Workspaces (Mock Demo)
-
-```python
+from robot_workspace import PoseObjectPNP, Object, Objects, NiryoWorkspaces
 from unittest.mock import Mock
-from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
-from robot_workspace.objects.pose_object import PoseObjectPNP
 
-# Create a mock environment (no hardware needed!)
-def create_mock_environment():
-    env = Mock()
-    env.use_simulation.return_value = True
+# 1. Working with Poses (position + orientation)
+pose = PoseObjectPNP(x=0.2, y=0.1, z=0.05, roll=0.0, pitch=1.57, yaw=0.0)
+print(f"Position: [{pose.x}, {pose.y}, {pose.z}]")
 
-    def mock_transform(ws_id, u_rel, v_rel, yaw):
-        x = 0.4 - u_rel * 0.3
-        y = 0.15 - v_rel * 0.3
-        return PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
+# Add offsets to create new poses
+pick_pose = pose.copy_with_offsets(z_offset=-0.02)  # Lower gripper 2cm
 
-    env.get_robot_target_pose_from_rel = mock_transform
-    return env
-
-# Initialize workspace collection
-mock_env = create_mock_environment()
-workspaces = NiryoWorkspaces(mock_env, verbose=False)
-
-# Get workspace information
-workspace = workspaces.get_home_workspace()
-print(f"Workspace: {workspace.id()}")
-print(f"Dimensions: {workspace.width_m():.3f}m x {workspace.height_m():.3f}m")
-
-# Transform coordinates
-world_pose = workspace.transform_camera2world_coords(
-    workspace_id=workspace.id(),
-    u_rel=0.5,  # Center of image
-    v_rel=0.5,
-    yaw=0.0
-)
-print(f"World coordinates: {world_pose}")
-```
-
-### Working with Objects
-
-```python
-from robot_workspace.objects.object import Object
-from robot_workspace.objects.objects import Objects
-from robot_workspace.objects.object_api import Location
-
-# Create an object (requires a workspace)
+# 2. Representing Detected Objects
+# Objects are created from vision system detections with bounding boxes
 obj = Object(
     label="pencil",
-    u_min=100, v_min=100,
-    u_max=200, v_max=200,
-    mask_8u=None,
-    workspace=workspace
+    u_min=100, v_min=100, u_max=200, v_max=200,  # Bounding box in pixels
+    mask_8u=None,  # Optional segmentation mask
+    workspace=workspace  # Links to workspace for coordinate transforms
 )
 
-# Access object properties
-print(f"Position: {obj.coordinate()}")
-print(f"Size: {obj.width_m():.3f}m x {obj.height_m():.3f}m")
-print(f"Area: {obj.size_m2()*10000:.2f} cm²")
+# Access object properties in physical units
+print(f"Object '{obj.label()}' at [{obj.x_com():.2f}, {obj.y_com():.2f}] meters")
+print(f"Size: {obj.width_m():.3f}m × {obj.height_m():.3f}m = {obj.size_m2()*10000:.1f} cm²")
+print(f"Optimal grasp angle: {obj.gripper_rotation():.2f} radians")
 
-# Create a collection and perform spatial queries
+# 3. Spatial Queries with Object Collections
 objects = Objects([obj1, obj2, obj3])
 
-# Find objects to the left of a coordinate
+# Find objects by spatial relationships
+from robot_workspace import Location
 left_objects = objects.get_detected_objects(
     location=Location.LEFT_NEXT_TO,
     coordinate=[0.2, 0.0]
 )
 
-# Find nearest object
-nearest, distance = objects.get_nearest_detected_object([0.2, 0.1])
+# Find nearest object to a coordinate
+nearest, distance = objects.get_nearest_detected_object([0.25, 0.05])
+print(f"Nearest: {nearest.label()} at {distance*100:.1f}cm away")
 
 # Size-based queries
 largest, size = objects.get_largest_detected_object()
-sorted_objs = objects.get_detected_objects_sorted(ascending=True)
+sorted_by_size = objects.get_detected_objects_sorted(ascending=True)
+
+# 4. Coordinate Transformation (requires robot environment)
+# Transform camera image coordinates to robot world coordinates
+world_pose = workspace.transform_camera2world_coords(
+    workspace_id="niryo_ws",
+    u_rel=0.5,  # Center of image (normalized 0-1)
+    v_rel=0.5,
+    yaw=0.0     # Object orientation
+)
+print(f"Image center → World: [{world_pose.x:.2f}, {world_pose.y:.2f}, {world_pose.z:.2f}]")
+```
+
+### Integration with Vision System
+
+This framework integrates seamlessly with the vision detection pipeline:
+```python
+# Typical workflow:
+# 1. vision_detect_segment detects objects in camera image
+# 2. robot_workspace converts detections to Object instances with world coordinates  
+# 3. robot_environment uses Objects for pick-and-place planning
+# 4. robot_mcp enables natural language control: "pick up the pencil"
+
+# The Object class bridges vision and manipulation:
+detected_objects = cortex.get_detected_objects()  # From vision system
+objects = Objects([
+    Object(..., workspace=workspace) for detection in detected_objects
+])
+robot.pick_object(objects[0].label(), objects[0].coordinate())
 ```
 
 ---
