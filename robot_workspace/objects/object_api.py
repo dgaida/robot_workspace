@@ -1,11 +1,10 @@
+from __future__ import annotations
+
 # abstract Class defining an object. An object has pixel coordinates as well as world coordinates.
 # Documentation and type definitions are final.
-
 from abc import ABC, abstractmethod
-
-from typing import List, Union
-
 from enum import Enum
+from typing import List, Optional, Union
 
 
 class Location(Enum):
@@ -23,7 +22,7 @@ class Location(Enum):
     NONE = None
 
     @staticmethod
-    def convert_str2location(location: Union["Location", str, None]) -> "Location":
+    def convert_str2location(location: Optional[Union[Location, str]]) -> Location:
         """
         Converts a string to a Location enum if it matches one of the Location values.
         If already a Location, returns it unchanged.
@@ -56,7 +55,7 @@ class ObjectAPI(ABC):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     # *** PUBLIC GET methods ***

@@ -3,12 +3,14 @@ Unit tests for multi-workspace operations.
 Create this file at: robot_workspace/tests/workspaces/test_multi_workspace.py
 """
 
-import pytest
 from unittest.mock import Mock
-from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
+
+import pytest
+
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
+from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 
 
 @pytest.fixture

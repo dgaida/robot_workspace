@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Workspaces package for the robot_environment system.
 
@@ -20,14 +22,14 @@ Example:
     workspace = workspaces.get_workspace_by_id("niryo_ws")
 """
 
-from .workspace import Workspace
-from .workspaces import Workspaces
 from .niryo_workspace import NiryoWorkspace
 from .niryo_workspaces import NiryoWorkspaces
 from .widowx_workspace import WidowXWorkspace
 from .widowx_workspaces import WidowXWorkspaces
+from .workspace import Workspace
+from .workspaces import Workspaces
 
-__all__ = ["Workspace", "Workspaces", "NiryoWorkspace", "NiryoWorkspaces", "WidowXWorkspace", "WidowXWorkspaces"]
+__all__ = ["NiryoWorkspace", "NiryoWorkspaces", "WidowXWorkspace", "WidowXWorkspaces", "Workspace", "Workspaces"]
 
 __version__ = "0.1.0"
 __author__ = "Daniel Gaida"

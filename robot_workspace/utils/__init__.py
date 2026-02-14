@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 # robot_workspace/utils/__init__.py
 from .utils import (
     setup_logging,

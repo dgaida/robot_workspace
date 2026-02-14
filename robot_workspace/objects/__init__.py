@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Object detection and representation module.
 
@@ -6,14 +8,14 @@ properties, positions, and segmentation information.
 """
 
 from .object import Object
+from .object_api import Location, ObjectAPI
 from .objects import Objects
-from .object_api import ObjectAPI, Location
 from .pose_object import PoseObjectPNP
 
 __all__ = [
     "Location",
     "Object",
-    "Objects",
     "ObjectAPI",
+    "Objects",
     "PoseObjectPNP",
 ]

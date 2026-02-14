@@ -2,14 +2,16 @@
 Unit tests for Object class
 """
 
-import pytest
-import numpy as np
 import json
 import math
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from robot_workspace import Location
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.pose_object import PoseObjectPNP
-from robot_workspace import Location
 
 
 class TestObjectAdvancedInitialization:

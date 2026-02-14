@@ -4,6 +4,7 @@ Add these tests to: tests/test_logger.py (or create new file)
 """
 
 import pytest
+
 from robot_workspace.common.logger import log_start_end, log_start_end_cls
 
 

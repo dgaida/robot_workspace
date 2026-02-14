@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """
 Utility functions for the robot_workspace package.
 Contains helper functions for logging
 """
 
 import logging
-from typing import Optional
 
 
 # Logging setup

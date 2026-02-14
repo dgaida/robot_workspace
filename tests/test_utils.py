@@ -2,11 +2,13 @@
 Unit tests for utils.py (Utility functions)
 """
 
-import pytest
 import logging
-import tempfile
 import os
+import tempfile
 from pathlib import Path
+
+import pytest
+
 from robot_workspace.utils.utils import setup_logging
 
 
@@ -102,7 +104,7 @@ class TestSetupLogging:
 
             # Verify file was created and has content
             assert os.path.exists(log_file)
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 content = f.read()
                 assert "Test message" in content
 
@@ -201,7 +203,7 @@ class TestSetupLogging:
             logger.info("Test unicode: こんにちは 🎉")
 
             # Read file and verify encoding
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 content = f.read()
                 assert "こんにちは" in content
                 assert "🎉" in content
@@ -231,7 +233,7 @@ class TestSetupLogging:
             logger2.info("Second message")
 
             # Both messages should be in file
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 content = f.read()
                 assert "First message" in content
                 assert "Second message" in content
@@ -418,7 +420,7 @@ class TestSetupLoggingFormatting:
             logger = setup_logging(log_file=log_file)
             logger.info("Test message")
 
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 content = f.read()
 
                 # Should contain timestamp, logger name, level, and message
@@ -448,7 +450,7 @@ class TestSetupLoggingFormatting:
             logger.warning("Warning message")
             logger.error("Error message")
 
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 content = f.read()
 
                 assert "DEBUG" in content
@@ -484,7 +486,7 @@ class TestSetupLoggingIntegration:
             logger.error("Operation failed")
 
             # Verify all messages were logged
-            with open(log_file, "r") as f:
+            with open(log_file) as f:
                 content = f.read()
 
                 assert "Application starting" in content

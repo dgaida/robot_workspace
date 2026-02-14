@@ -26,79 +26,68 @@ on:
       - '.github/workflows/dependency-review.yml'
       - '.github/workflows/codeql.yml'
       - '.github/workflows/lint.yml'
-  # Weekly full test run
-  # schedule:
-  #   - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
-  # Manual trigger
   workflow_dispatch:
     inputs:
       full_test:
         description: 'Run full test matrix'
         required: false
         default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
+        type: boolean
 
 jobs:
-  test:
+  determine-test-level:
+    runs-on: ubuntu-latest
+    outputs:
+      full-test: ${{ steps.check.outputs.full-test }}
+    steps:
+      - id: check
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.full_test }}" == "true" ]] || \
+             [[ "${{ contains(github.event.head_commit.message, '[full-test]') }}" == "true" ]] || \
+             [[ "${{ contains(github.event.head_commit.message, '[full ci]') }}" == "true" ]]; then
+            echo "full-test=true" >> $GITHUB_OUTPUT
+          else
+            echo "full-test=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+  quick-test:
+    needs: determine-test-level
+    if: needs.determine-test-level.outputs.full-test == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -v --cov=robot_workspace --cov-report=xml
+
+  full-test:
+    needs: determine-test-level
+    if: needs.determine-test-level.outputs.full-test == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # Conditional matrix based on event type
-        # Quick tests: ubuntu-latest + Python 3.11 only
-        # Full tests: all OS and all Python versions
-        os: >-
-          ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.full_test == 'true'
-                || contains(github.event.head_commit.message, '[full-test]')
-                || contains(github.event.head_commit.message, '[full ci]'))
-              && fromJSON('["ubuntu-latest", "windows-latest", "macos-latest"]')
-              || fromJSON('["ubuntu-latest"]') }}
-        python-version: >-
-          ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.full_test == 'true'
-                || contains(github.event.head_commit.message, '[full-test]')
-                || contains(github.event.head_commit.message, '[full ci]'))
-              && fromJSON('["3.9", "3.10", "3.11"]')
-              || fromJSON('["3.11"]') }}
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11']
       fail-fast: false
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Display test mode
-      run: |
-        if [[ "${{ github.event_name }}" == "schedule" ]] || \
-           [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.full_test }}" == "true" ]] || \
-           [[ "${{ contains(github.event.head_commit.message, '[full-test]') }}" == "true" ]] || \
-           [[ "${{ contains(github.event.head_commit.message, '[full ci]') }}" == "true" ]]; then
-          echo "🔥 Running FULL test suite on all platforms"
-        else
-          echo "⚡ Running QUICK tests (ubuntu-latest, Python 3.11 only)"
-        fi
-      shell: bash
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest pytest-cov
-        pip install -r requirements.txt
-
-    - name: Run tests with coverage
-      run: |
-        pytest -v --cov=robot_workspace --cov-report=xml --cov-report=term
-      continue-on-error: false
-
-    - name: Upload coverage to Codecov
-      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-      uses: codecov/codecov-action@v5
-      with:
-        files: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+          pip install -r requirements.txt
+      - name: Run tests
+        run: pytest -v --cov=robot_workspace --cov-report=xml

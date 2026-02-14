@@ -9,15 +9,17 @@ These tests verify end-to-end workflows and interactions between multiple compon
 - Pick-and-place scenarios
 """
 
-import pytest
-import numpy as np
 import json
 import math
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
 from robot_workspace.objects.object import Object
+from robot_workspace.objects.object_api import Location
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
-from robot_workspace.objects.object_api import Location
 from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 
 

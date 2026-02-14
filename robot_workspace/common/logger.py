@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 # class defining a decorator to log functions entry and exit
 # final
-
 import inspect
 import logging
 

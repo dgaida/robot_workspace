@@ -3,9 +3,11 @@ Additional tests to cover remaining gaps in coverage
 Create this file at: tests/test_additional_coverage.py
 """
 
-import pytest
-import numpy as np
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
@@ -332,7 +334,9 @@ class TestNiryoWorkspaceEnvironmentProperty:
 
         env.get_robot_target_pose_from_rel = mock_transform
 
-        workspace = NiryoWorkspace("test_ws", env)
+        from robot_workspace.config import PoseConfig, WorkspaceConfig
+        config = WorkspaceConfig(id="test_ws", observation_pose=PoseConfig())
+        workspace = NiryoWorkspace("test_ws", env, config=config)
 
         assert workspace.environment() == env
 

@@ -1,35 +1,32 @@
+from __future__ import annotations
+
 # class defining a list of Workspace class
 # TODO: get_visible_workspace
 # Documentation and type definitions are almost final (chatgpt might be able to improve it).
-
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..workspaces.workspace import Workspace
     from ..objects.pose_object import PoseObjectPNP
+    from ..workspaces.workspace import Workspace
 
-    # from ..environment import Environment
 
-
-class Workspaces(List["Workspace"]):
+class Workspaces(list["Workspace"]):
     """
     class defining a list of Workspace class
 
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, verbose: bool = False):  # : "Environment"
+    def __init__(self, verbose: bool = False) -> None:
         """
         Creates an empty list of Workspace class
 
         Args:
-            verbose:
-
+            verbose (bool): If True, enables verbose logging.
         """
         super().__init__()
 
         self._verbose = verbose
-        # self._environment = environment
 
     # *** PUBLIC SET methods ***
 
@@ -44,7 +41,7 @@ class Workspaces(List["Workspace"]):
         """
         return self.get_workspace_id(0)
 
-    def get_home_workspace(self) -> "Workspace":
+    def get_home_workspace(self) -> Workspace:
         """
         Returns the workspace at index 0.
 
@@ -53,7 +50,7 @@ class Workspaces(List["Workspace"]):
         """
         return self.get_workspace(0)
 
-    def get_workspace(self, index: int) -> "Workspace":
+    def get_workspace(self, index: int) -> Workspace:
         """
         Return the workspace at the given position index in the list of workspaces.
 
@@ -65,7 +62,7 @@ class Workspaces(List["Workspace"]):
         """
         return self[index]
 
-    def get_workspace_by_id(self, id: str) -> Optional["Workspace"]:
+    def get_workspace_by_id(self, id: str) -> Optional[Workspace]:
         """
         Return the Workspace object with the given id, if existent, else None is returned.
 
@@ -81,7 +78,7 @@ class Workspaces(List["Workspace"]):
 
         return None
 
-    def get_workspace_ids(self) -> List[str]:
+    def get_workspace_ids(self) -> list[str]:
         """
         Returns a list of ids of all workspaces.
 
@@ -104,7 +101,7 @@ class Workspaces(List["Workspace"]):
         """
         return self[index].id()
 
-    def get_observation_pose(self, workspace_id: str) -> "PoseObjectPNP":
+    def get_observation_pose(self, workspace_id: str) -> Optional[PoseObjectPNP]:
         """
         Return the observation pose of the given workspace id
 
@@ -115,7 +112,7 @@ class Workspaces(List["Workspace"]):
             PoseObjectPNP: observation pose of the gripper where it can observe the workspace given by workspace_id
         """
         workspace = self.get_workspace_by_id(workspace_id)
-        return workspace.observation_pose()
+        return workspace.observation_pose() if workspace else None
 
     def get_width_height_m(self, workspace_id: str) -> tuple[float, float]:
         """
@@ -128,9 +125,11 @@ class Workspaces(List["Workspace"]):
             width, height: width and height of the workspace in meters
         """
         workspace = self.get_workspace_by_id(workspace_id)
-        return workspace.width_m(), workspace.height_m()
+        if workspace:
+            return workspace.width_m(), workspace.height_m()
+        return 0.0, 0.0
 
-    def get_img_shape(self, workspace_id: str) -> tuple[int, int, int]:
+    def get_img_shape(self, workspace_id: str) -> Optional[tuple[int, int, int]]:
         """
         Return the shape of the image of the workspace with the given workspace id
 
@@ -141,12 +140,12 @@ class Workspaces(List["Workspace"]):
             shape of image of workspace in pixels
         """
         workspace = self.get_workspace_by_id(workspace_id)
-        return workspace.img_shape()
+        return workspace.img_shape() if workspace else None
 
     # *** PUBLIC methods ***
 
     # TODO: this is not yet the final implementation
-    def get_visible_workspace(self, camera_pose: "PoseObjectPNP") -> Optional["Workspace"]:
+    def get_visible_workspace(self, camera_pose: PoseObjectPNP) -> Optional[Workspace]:
         for workspace in self:
             # the is_visible checks which workspace is visible.
             if workspace.is_visible(camera_pose):
@@ -154,7 +153,7 @@ class Workspaces(List["Workspace"]):
 
         return None
 
-    def append_workspace(self, workspace: "Workspace") -> None:
+    def append_workspace(self, workspace: Workspace) -> None:
         """
         Appends the given workspace to the list of workspaces.
 

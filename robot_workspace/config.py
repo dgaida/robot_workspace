@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Configuration management for robot workspaces.
 
@@ -38,7 +39,7 @@ class WorkspaceConfig:
     robot_type: str = "niryo"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "WorkspaceConfig":
+    def from_dict(cls, data: Dict[str, Any]) -> WorkspaceConfig:
         """
         Create WorkspaceConfig from dictionary.
 
@@ -88,7 +89,7 @@ class RobotConfig:
     default_workspace_id: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "RobotConfig":
+    def from_dict(cls, data: Dict[str, Any]) -> RobotConfig:
         """
         Create RobotConfig from dictionary.
 
@@ -120,7 +121,7 @@ class ConfigManager:
         >>> workspace_config = config_mgr.get_workspace_config('niryo_ws')
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._robot_configs: Dict[str, RobotConfig] = {}
         self._workspace_configs: Dict[str, WorkspaceConfig] = {}
 

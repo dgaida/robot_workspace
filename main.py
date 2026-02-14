@@ -9,11 +9,12 @@ This script shows how to:
 """
 
 from unittest.mock import Mock
-from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
+
 from robot_workspace.objects.object import Object
+from robot_workspace.objects.object_api import Location
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
-from robot_workspace.objects.object_api import Location
+from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 
 
 def create_mock_environment(use_simulation=False):
