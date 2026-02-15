@@ -14,10 +14,10 @@ def log_start_end(verbose: bool = True) -> Callable[[F], F]:
     Returns a decorator to log the start and end of a function.
 
     Args:
-        verbose (bool): If True, logs will be printed.
+        verbose (bool): If True, logs will be recorded at DEBUG level.
 
     Returns:
-        function: Decorator for logging start and end of functions.
+        Callable[[F], F]: Decorator for logging start and end of functions.
     """
 
     def decorator(func: F) -> F:
@@ -38,6 +38,11 @@ def log_start_end(verbose: bool = True) -> Callable[[F], F]:
 def log_start_end_cls() -> Callable[[F], F]:
     """
     Decorator to log the start and end of a method, including class name and line number.
+
+    This decorator checks for a `_verbose` attribute on the instance to decide whether to log.
+
+    Returns:
+        Callable[[F], F]: Decorator for logging start and end of methods.
     """
 
     def decorator(func: F) -> F:

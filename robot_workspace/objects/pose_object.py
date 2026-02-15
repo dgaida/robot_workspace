@@ -14,21 +14,15 @@ from ..common.logger import log_start_end_cls
 
 class PoseObjectPNP:
     """
-    Pose object which stores x, y, z, roll, pitch & yaw parameters
+    Pose object which stores x, y, z, roll, pitch & yaw parameters.
 
-    :ivar x: X (meter)
-    :vartype x: float
-    :ivar y: Y (meter)
-    :vartype y: float
-    :ivar z: Z (meter)
-    :vartype z: float
-    :ivar roll: Roll (radian)
-    :vartype roll: float
-    :ivar pitch: Pitch (radian)
-    :vartype pitch: float
-    :ivar yaw: Yaw (radian)
-    :vartype yaw: float
-
+    Attributes:
+        x (float): X coordinate in meters.
+        y (float): Y coordinate in meters.
+        z (float): Z coordinate in meters.
+        roll (float): Roll orientation in radians.
+        pitch (float): Pitch orientation in radians.
+        yaw (float): Yaw orientation in radians.
     """
 
     # *** CONSTRUCTORS ***
@@ -41,6 +35,17 @@ class PoseObjectPNP:
         pitch: float = 0.0,
         yaw: float = 0.0,
     ) -> None:
+        """
+        Initializes a PoseObjectPNP instance.
+
+        Args:
+            x (float): X coordinate in meters.
+            y (float): Y coordinate in meters.
+            z (float): Z coordinate in meters.
+            roll (float): Roll orientation in radians.
+            pitch (float): Pitch orientation in radians.
+            yaw (float): Yaw orientation in radians.
+        """
         # X (meter)
         self.x = float(x)
         # Y (meter)
@@ -98,7 +103,7 @@ class PoseObjectPNP:
         Determines if two poses are approximately the same, accounting for angle periodicity.
 
         Args:
-            other: other pose object to compare with
+            other (PoseObjectPNP): Other pose object to compare with.
             eps_position (float): Tolerance for position differences (in meters).
             eps_orientation (float): Tolerance for orientation differences (in radians).
 
@@ -123,8 +128,7 @@ class PoseObjectPNP:
 
     def approx_eq_xyz(self, other: PoseObjectPNP, eps: float = 0.1) -> bool:
         """
-        Compares the (x, y, z) coordinates of this pose object with another pose object
-        to determine if they are approximately equal within a given tolerance.
+        Compares the (x, y, z) coordinates of this pose object with another pose object.
 
         Args:
             other (PoseObjectPNP): The pose object to compare with.
@@ -132,7 +136,7 @@ class PoseObjectPNP:
 
         Returns:
             bool: True if the difference in x, y, and z coordinates between the two poses
-            is less than the specified tolerance (eps), otherwise False.
+                is less than the specified tolerance (eps), otherwise False.
         """
         return bool(abs(self.x - other.x) < eps and abs(self.y - other.y) < eps and abs(self.z - other.z) < eps)
 
@@ -146,8 +150,7 @@ class PoseObjectPNP:
         yaw_offset: float = 0.0,
     ) -> PoseObjectPNP:
         """
-        Creates a new pose object by copying the current pose and applying specified offsets
-        to its position (x, y, z) and orientation (roll, pitch, yaw).
+        Creates a new pose object by applying offsets to its position and orientation.
 
         Args:
             x_offset (float): Offset to apply to the x-coordinate (default: 0.0).
@@ -171,9 +174,10 @@ class PoseObjectPNP:
 
     def to_list(self) -> list[float]:
         """
-        Return a list [x, y, z, roll, pitch, yaw] corresponding to the pose's parameters
+        Return a list [x, y, z, roll, pitch, yaw] corresponding to the pose's parameters.
 
-        :rtype: list[float]
+        Returns:
+            list[float]: A list of the pose's parameters.
         """
         list_pos = [self.x, self.y, self.z, self.roll, self.pitch, self.yaw]
         return list(map(float, list_pos))
@@ -215,37 +219,35 @@ class PoseObjectPNP:
     @property
     def quaternion(self) -> list[float]:
         """
-        Return the quaternion in a list [qx, qy, qz, qw]
+        Return the quaternion in a list [qx, qy, qz, qw].
 
-        :return: quaternion [qx, qy, qz, qw]
-        :rtype: list[float]
+        Returns:
+            list[float]: Quaternion [qx, qy, qz, qw].
         """
         return self.euler_to_quaternion(self.roll, self.pitch, self.yaw)
 
     @property
     def quaternion_pose(self) -> list[float]:
         """
-        Return the position and the quaternion in a list [x, y, z, qx, qy, qz, qw]
+        Return the position and the quaternion in a list [x, y, z, qx, qy, qz, qw].
 
-        :return: position [x, y, z] + quaternion [qx, qy, qz, qw]
-        :rtype: list[float]
-
+        Returns:
+            list[float]: Position [x, y, z] + quaternion [qx, qy, qz, qw].
         """
         return [self.x, self.y, self.z, *list(self.euler_to_quaternion(self.roll, self.pitch, self.yaw))]
 
     @staticmethod
     def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float]:
         """
-        Convert euler angles to quaternion
+        Convert euler angles to quaternion.
 
-        :param roll: roll in radians
-        :type roll: float
-        :param pitch: pitch in radians
-        :type pitch: float
-        :param yaw: yaw in radians
-        :type yaw: float
-        :return: quaternion in a list [qx, qy, qz, qw]
-        :rtype: list[float]
+        Args:
+            roll (float): Roll in radians.
+            pitch (float): Pitch in radians.
+            yaw (float): Yaw in radians.
+
+        Returns:
+            list[float]: Quaternion in a list [qx, qy, qz, qw].
         """
         qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
         qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2)
@@ -257,18 +259,16 @@ class PoseObjectPNP:
     @staticmethod
     def quaternion_to_euler_angle(qx: float, qy: float, qz: float, qw: float) -> tuple[float, float, float]:
         """
-        Convert euler angles to quaternion
+        Convert quaternion to euler angles.
 
-        :param qx:
-        :type qx: float
-        :param qy:
-        :type qy: float
-        :param qz:
-        :type qz: float
-        :param qw:
-        :type qw: float
-        :return: euler angles in a list [roll, pitch, yaw]
-        :rtype: list[float]
+        Args:
+            qx (float): Quaternion x.
+            qy (float): Quaternion y.
+            qz (float): Quaternion z.
+            qw (float): Quaternion w.
+
+        Returns:
+            tuple[float, float, float]: Euler angles (roll, pitch, yaw) in radians.
         """
         ysqr = qy * qy
 
@@ -299,10 +299,10 @@ class PoseObjectPNP:
         Converts a PoseObject from Niryo class to a PoseObjectPNP object.
 
         Args:
-            pose_object: PoseObject from Niryo
+            pose_object (Any): PoseObject from Niryo.
 
         Returns:
-            PoseObjectPNP
+            PoseObjectPNP: The converted pose object.
         """
         return PoseObjectPNP(
             float(pose_object.x),
@@ -316,13 +316,13 @@ class PoseObjectPNP:
     @staticmethod
     def convert_pose_object2niryo_pose_object(pose_object: PoseObjectPNP) -> Any:
         """
-        Convert a PoseObjectPNP to a PoseObject from Niryo Robot
+        Convert a PoseObjectPNP to a PoseObject from Niryo Robot.
 
         Args:
-            pose_object: PoseObjectPNP
+            pose_object (PoseObjectPNP): The pose object to convert.
 
         Returns:
-            PoseObject: Pose object that the Niryo robot defines
+            Any: Pose object as defined by Niryo.
         """
         return PoseObject(pose_object.x, pose_object.y, pose_object.z, pose_object.roll, pose_object.pitch, pose_object.yaw)
 
@@ -336,24 +336,36 @@ class PoseObjectPNP:
         Normalize an angle to the range [-π, π].
 
         Args:
-            angle: some angle in radians
+            angle (float): Angle in radians.
+
+        Returns:
+            float: Normalized angle.
         """
         return (angle + math.pi) % (2 * math.pi) - math.pi
 
     @staticmethod
     def _angular_difference(angle1: float, angle2: float) -> float:
         """
-        Calculate the smallest difference between two angles (angle1 - angle2), accounting for periodicity.
+        Calculate the smallest difference between two angles.
 
         Args:
-            angle1: angle 1 in radians
-            angle2: angle 2 in radians
+            angle1 (float): Angle 1 in radians.
+            angle2 (float): Angle 2 in radians.
+
+        Returns:
+            float: Angular difference.
         """
         return PoseObjectPNP._normalize_angle(angle1 - angle2)
 
     # *** PUBLIC properties ***
 
     def xy_coordinate(self) -> list[float]:
+        """
+        Returns the (x, y) coordinates of the pose.
+
+        Returns:
+            list[float]: [x, y] coordinates.
+        """
         return [self.x, self.y]
 
     # *** PRIVATE variables ***

@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 
 class WidowXWorkspace(Workspace):
     """
-    A workspace where the pick-and-place robot WidowX 250 6DOF can pick or place objects from.
+    Implementation of Workspace for the WidowX 250 6DOF robot.
 
-    The WidowX robot typically uses a third-person camera view (e.g., Intel RealSense)
-    rather than a gripper-mounted camera like the Niryo.
+    The WidowX robot typically uses a third-person camera view
+    rather than a gripper-mounted camera.
     """
 
     # *** CONSTRUCTORS ***
@@ -31,13 +31,13 @@ class WidowXWorkspace(Workspace):
         config: WorkspaceConfig | None = None,
     ) -> None:
         """
-        Inits the workspace.
+        Initializes the WidowXWorkspace.
 
         Args:
-            workspace_id: id of the workspace
-            environment: object implementing EnvironmentProtocol
-            verbose: enable verbose output
-            config: Optional workspace configuration
+            workspace_id (str): Unique ID of the workspace.
+            environment (EnvironmentProtocol): Object implementing EnvironmentProtocol.
+            verbose (bool): Whether to enable verbose output.
+            config (WorkspaceConfig, optional): Optional workspace configuration.
         """
         self._environment = environment
         self._config = config
@@ -52,15 +52,15 @@ class WidowXWorkspace(Workspace):
     @classmethod
     def from_config(cls, config: WorkspaceConfig, environment: EnvironmentProtocol, verbose: bool = False) -> WidowXWorkspace:
         """
-        Create WidowXWorkspace from configuration.
+        Creates a WidowXWorkspace from a configuration object.
 
         Args:
-            config: WorkspaceConfig instance
-            environment: Environment object
-            verbose: Enable verbose output
+            config (WorkspaceConfig): Workspace configuration.
+            environment (EnvironmentProtocol): Environment object.
+            verbose (bool): Whether to enable verbose output.
 
         Returns:
-            WidowXWorkspace instance
+            WidowXWorkspace: The initialized workspace instance.
         """
         workspace = cls(config.id, environment, verbose, config)
 
@@ -83,17 +83,16 @@ class WidowXWorkspace(Workspace):
 
     def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
-        Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
-        calculate the corresponding pose in world coordinates.
+        Transforms relative image coordinates to WidowX world coordinates.
 
         Args:
-            workspace_id: id of the workspace
-            u_rel: horizontal coordinate in image of workspace, normalized between 0 and 1
-            v_rel: vertical coordinate in image of workspace, normalized between 0 and 1
-            yaw: orientation of an object at the pixel coordinates [u_rel, v_rel].
+            workspace_id (str): ID of the workspace.
+            u_rel (float): Normalized horizontal coordinate [0, 1].
+            v_rel (float): Normalized vertical coordinate [0, 1].
+            yaw (float): Orientation of the object.
 
         Returns:
-            PoseObjectPNP: Pose of the point in world coordinates of the robot.
+            PoseObjectPNP: Corresponding pose in world coordinates.
         """
         if self.verbose() and self._logger:
             self._logger.debug(
@@ -133,9 +132,7 @@ class WidowXWorkspace(Workspace):
 
     @log_start_end_cls()
     def _set_4corners_of_workspace(self) -> None:
-        """
-        Sets the 4 corners of the workspace using the transform method.
-        """
+        """Sets the four corners of the workspace using the transform method."""
         self._xy_ul_wc = self.transform_camera2world_coords(self._id, 0.0, 0.0)
         self._xy_ll_wc = self.transform_camera2world_coords(self._id, 1.0, 0.0)
         self._xy_ur_wc = self.transform_camera2world_coords(self._id, 0.0, 1.0)
@@ -147,11 +144,7 @@ class WidowXWorkspace(Workspace):
 
     @log_start_end_cls()
     def _set_observation_pose(self) -> None:
-        """
-        Set the variable _observation_pose for the given workspace.
-
-        Strictly uses configuration data.
-        """
+        """Sets the observation pose using configuration data."""
         if not self._config:
             raise ValueError(
                 f"No configuration provided for workspace '{self._id}'. " "Initialize with config_path or from_config()."
@@ -174,6 +167,7 @@ class WidowXWorkspace(Workspace):
     # *** PUBLIC properties ***
 
     def environment(self) -> EnvironmentProtocol:
+        """Returns the environment associated with this workspace."""
         return self._environment
 
     # *** PRIVATE variables ***

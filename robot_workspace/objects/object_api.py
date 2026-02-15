@@ -1,3 +1,5 @@
+"""API interfaces for objects."""
+
 from __future__ import annotations
 
 # abstract Class defining an object. An object has pixel coordinates as well as world coordinates.

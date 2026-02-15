@@ -1,6 +1,7 @@
 """
 Utility functions for the robot_workspace package.
-Contains helper functions for logging
+
+Contains helper functions for logging and environment setup.
 """
 
 from __future__ import annotations
@@ -11,8 +12,16 @@ import logging
 # Logging setup
 def setup_logging(verbose: bool = False, log_file: str | None = None) -> logging.Logger:
     """
-    Set up logging configuration for the vision detection system.
-    Handles Unicode output gracefully on Windows consoles.
+    Set up logging configuration for the robot workspace system.
+
+    Handles Unicode output gracefully on Windows consoles and supports optional file logging.
+
+    Args:
+        verbose (bool): If True, sets log level to DEBUG. Otherwise INFO.
+        log_file (str, optional): Path to a file where logs should be saved.
+
+    Returns:
+        logging.Logger: The configured logger instance.
     """
     import sys
 
@@ -20,7 +29,6 @@ def setup_logging(verbose: bool = False, log_file: str | None = None) -> logging
 
     # FIXED: Check if logger already exists AND update its level
     if logger.handlers:
-        print("utils.py: using an already existent logger")
         # Update the level even if logger exists
         level = logging.DEBUG if verbose else logging.INFO
         logger.setLevel(level)

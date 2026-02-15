@@ -17,8 +17,10 @@ if TYPE_CHECKING:
 
 class NiryoWorkspace(Workspace):
     """
-    A workspace where the pick-and-place robot Niryo Ned2 can pick or place objects from.
+    Implementation of Workspace for the Niryo Ned2 robot.
 
+    This class provides specific coordinate transformations and poses
+    for the Niryo Ned2 robotic arm and its mounted camera.
     """
 
     # *** CONSTRUCTORS ***
@@ -30,13 +32,13 @@ class NiryoWorkspace(Workspace):
         config: WorkspaceConfig | None = None,
     ) -> None:
         """
-        Inits the workspace.
+        Initializes the NiryoWorkspace.
 
         Args:
-            workspace_id: id of the workspace
-            environment: object implementing EnvironmentProtocol
-            verbose: enable verbose output
-            config: Optional workspace configuration
+            workspace_id (str): Unique ID of the workspace.
+            environment (EnvironmentProtocol): Object providing robot environment access.
+            verbose (bool): Whether to enable verbose output.
+            config (WorkspaceConfig, optional): Optional workspace configuration.
         """
         self._environment = environment
         self._config = config
@@ -51,15 +53,15 @@ class NiryoWorkspace(Workspace):
     @classmethod
     def from_config(cls, config: WorkspaceConfig, environment: EnvironmentProtocol, verbose: bool = False) -> NiryoWorkspace:
         """
-        Create NiryoWorkspace from configuration.
+        Creates a NiryoWorkspace instance from a configuration object.
 
         Args:
-            config: WorkspaceConfig instance
-            environment: Environment object
-            verbose: Enable verbose output
+            config (WorkspaceConfig): Configuration instance.
+            environment (EnvironmentProtocol): Environment object.
+            verbose (bool): Whether to enable verbose output.
 
         Returns:
-            NiryoWorkspace instance
+            NiryoWorkspace: The initialized workspace instance.
         """
         workspace = cls(config.id, environment, verbose, config)
 
@@ -82,17 +84,16 @@ class NiryoWorkspace(Workspace):
 
     def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
-        Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
-        calculate the corresponding pose in world coordinates.
+        Transforms relative image coordinates to Niryo world coordinates.
 
         Args:
-            workspace_id: id of the workspace
-            u_rel: horizontal coordinate in image of workspace, normalized between 0 and 1
-            v_rel: vertical coordinate in image of workspace, normalized between 0 and 1
-            yaw: orientation of an object at the pixel coordinates [u_rel, v_rel].
+            workspace_id (str): ID of the workspace.
+            u_rel (float): Normalized horizontal coordinate [0, 1].
+            v_rel (float): Normalized vertical coordinate [0, 1].
+            yaw (float): Orientation of the object.
 
         Returns:
-            PoseObjectPNP: Pose of the point in world coordinates of the robot.
+            PoseObjectPNP: Corresponding pose in world coordinates.
         """
         if self.verbose():
             self._logger.debug(
@@ -112,9 +113,7 @@ class NiryoWorkspace(Workspace):
 
     @log_start_end_cls()
     def _set_4corners_of_workspace(self) -> None:
-        """
-        sets the 4 corners of the workspace, being _xy_ul_wc, ...
-        """
+        """Sets the four corners of the workspace in world coordinates."""
         self._xy_ul_wc = self.transform_camera2world_coords(self._id, 0.0, 0.0)
         self._xy_ll_wc = self.transform_camera2world_coords(self._id, 0.0, 1.0)
         self._xy_ur_wc = self.transform_camera2world_coords(self._id, 1.0, 0.0)
@@ -126,13 +125,7 @@ class NiryoWorkspace(Workspace):
 
     @log_start_end_cls()
     def _set_observation_pose(self) -> None:
-        """
-        Set the variable _observation_pose for the given workspace. An observation pose is a pose of the gripper
-        where the gripper hovers over the workspace. For the niryo robot this is a gripper pose in which the
-        gripper mounted camera can observe the complete workspace.
-
-        Strictly uses configuration data.
-        """
+        """Sets the observation pose using configuration data."""
         if not self._config:
             raise ValueError(
                 f"No configuration provided for workspace '{self._id}'. " "Initialize with config_path or from_config()."
@@ -155,6 +148,7 @@ class NiryoWorkspace(Workspace):
     # *** PUBLIC properties ***
 
     def environment(self) -> EnvironmentProtocol:
+        """Returns the environment associated with this workspace."""
         return self._environment
 
     # *** PRIVATE variables ***

@@ -31,13 +31,25 @@ class Object(ObjectAPI):
     methods to calculate dimensions, orientation, and other properties of the object.
 
     Attributes:
-        - label: Label identifying the object (e.g., "chocolate bar").
-        - workspace: Workspace in which the object resides.
-        - segmentation mask: Optional mask representing the object's shape.
-        - dimensions: Bounding box dimensions in both pixels and meters.
-        - position: Object's position in relative image coordinates and world coordinates.
-        - gripper_rotation: Suggested orientation for the robot gripper to pick up the object.
-        - size: Area of the object in square meters.
+        _label (str): Label identifying the object (e.g., "pencil").
+        _workspace (Workspace): Workspace in which the object resides.
+        _verbose (bool): Whether verbose logging is enabled.
+        _logger (logging.Logger): Logger instance.
+        _original_mask_8u (np.ndarray, optional): Original segmentation mask.
+        _u_rel_min (float): Minimum U relative coordinate.
+        _v_rel_min (float): Minimum V relative coordinate.
+        _u_rel_max (float): Maximum U relative coordinate.
+        _v_rel_max (float): Maximum V relative coordinate.
+        _width (float): Width in relative coordinates.
+        _height (float): Height in relative coordinates.
+        _gripper_rotation (float): Suggested orientation for the robot gripper.
+        _size_m2 (float): Area of the object in square meters.
+        _pose_center (PoseObjectPNP): Pose of the geometric center.
+        _u_rel_o (float): U relative coordinate of the center.
+        _v_rel_o (float): V relative coordinate of the center.
+        _pose_com (PoseObjectPNP): Pose of the center of mass.
+        _u_rel_com (float): U relative coordinate of the COM.
+        _v_rel_com (float): V relative coordinate of the COM.
     """
 
     # *** CONSTRUCTORS ***
@@ -62,12 +74,13 @@ class Object(ObjectAPI):
             v_min (int): Upper-left corner v-coordinate of the bounding box (in pixels).
             u_max (int): Lower-right corner u-coordinate of the bounding box (in pixels).
             v_max (int): Lower-right corner v-coordinate of the bounding box (in pixels).
-            mask_8u (np.ndarray): Optional segmentation mask of the object (8-bit, uint8).
+            mask_8u (np.ndarray, optional): Segmentation mask of the object (8-bit, uint8).
             workspace (Workspace): Workspace instance where the object is located.
             verbose (bool): If True, enables verbose logging.
 
         Raises:
-            ValueError: If the provided segmentation mask is not 8-bit unsigned.
+            ValueError: If the provided segmentation mask is not 8-bit unsigned,
+                or if the workspace has no image shape.
         """
         super().__init__()
 
@@ -88,14 +101,13 @@ class Object(ObjectAPI):
     def _init_object_properties(self, u_min: int, v_min: int, u_max: int, v_max: int, mask_8u: np.ndarray | None) -> None:
         """
         Common initialization logic for object properties.
-        This method is called by __init__ and can be reused by set_pose_com.
 
         Args:
-            u_min (int): Upper-left corner u-coordinate of the bounding box (in pixels).
-            v_min (int): Upper-left corner v-coordinate of the bounding box (in pixels).
-            u_max (int): Lower-right corner u-coordinate of the bounding box (in pixels).
-            v_max (int): Lower-right corner v-coordinate of the bounding box (in pixels).
-            mask_8u (np.ndarray): Optional segmentation mask of the object (8-bit, uint8).
+            u_min (int): Upper-left corner u-coordinate (pixels).
+            v_min (int): Upper-left corner v-coordinate (pixels).
+            u_max (int): Lower-right corner u-coordinate (pixels).
+            v_max (int): Lower-right corner v-coordinate (pixels).
+            mask_8u (np.ndarray, optional): Segmentation mask (8-bit, uint8).
         """
         self._u_rel_min, self._v_rel_min = self._calc_rel_coordinates(u_min, v_min)
         self._u_rel_max, self._v_rel_max = self._calc_rel_coordinates(u_max, v_max)
@@ -148,10 +160,9 @@ class Object(ObjectAPI):
     def set_position(self, xy_coordinate: list[float]) -> None:
         """
         Legacy method kept for backwards compatibility.
-        Consider using set_pose_com instead for full pose updates.
 
         Args:
-            xy_coordinate: [x, y] world coordinates
+            xy_coordinate (list[float]): [x, y] world coordinates in meters.
         """
         # Create a pose with the new x, y but keeping old z and orientation
         new_pose = self._pose_com.copy_with_offsets(
@@ -163,17 +174,10 @@ class Object(ObjectAPI):
         """
         Updates the object's center of mass pose and recalculates all dependent properties.
 
-        This method is called after a robot picks and places an object at a new location.
-        It handles both position changes and orientation changes (rotation around z-axis).
-
-        The method:
-        1. Calculates rotation and translation transforms
-        2. Applies them to bounding box and mask
-        3. Reinitializes object with new geometry
-        4. Overrides calculated pose with exact provided pose
+        Handles both position changes and orientation changes (rotation around z-axis).
 
         Args:
-            pose_com (PoseObjectPNP): New pose for the object's center of mass
+            pose_com (PoseObjectPNP): New pose for the object's center of mass.
         """
         if self.verbose():
             self._logger.debug(f"set_pose_com: {self._pose_com} → {pose_com}")
@@ -195,7 +199,15 @@ class Object(ObjectAPI):
         self._pose_com = pose_com
 
     def _calculate_translation(self, target_pose: PoseObjectPNP) -> tuple[int, int]:
-        """Calculate pixel translation needed to reach target pose."""
+        """
+        Calculate pixel translation needed to reach target pose.
+
+        Args:
+            target_pose (PoseObjectPNP): The target pose in world coordinates.
+
+        Returns:
+            tuple[int, int]: (translation_u, translation_v) in pixels.
+        """
         img_width, img_height, _ = self._workspace.img_shape()
 
         # Calculate old center in pixel coordinates
@@ -213,7 +225,16 @@ class Object(ObjectAPI):
         return translation_u, translation_v
 
     def _apply_pose_transform_to_bbox(self, rotation_delta: float, translation: tuple[int, int]) -> tuple[int, int, int, int]:
-        """Apply rotation and translation to bounding box."""
+        """
+        Apply rotation and translation to bounding box.
+
+        Args:
+            rotation_delta (float): Rotation change in radians.
+            translation (tuple[int, int]): (delta_u, delta_v) in pixels.
+
+        Returns:
+            tuple[int, int, int, int]: New (u_min, v_min, u_max, v_max).
+        """
         img_width, img_height, _ = self._workspace.img_shape()
 
         # Calculate old center in pixel coordinates
@@ -253,7 +274,16 @@ class Object(ObjectAPI):
         return new_u_min, new_v_min, new_u_max, new_v_max
 
     def _apply_pose_transform_to_mask(self, rotation_delta: float, translation: tuple[int, int]) -> np.ndarray | None:
-        """Apply rotation and translation to segmentation mask."""
+        """
+        Apply rotation and translation to segmentation mask.
+
+        Args:
+            rotation_delta (float): Rotation change in radians.
+            translation (tuple[int, int]): (delta_u, delta_v) in pixels.
+
+        Returns:
+            np.ndarray | None: Transformed mask, or None if no mask exists.
+        """
         if self._original_mask_8u is None:
             return None
 
@@ -276,6 +306,12 @@ class Object(ObjectAPI):
     # *** PUBLIC GET methods ***
 
     def get_workspace_id(self) -> str:
+        """
+        Returns the ID of the workspace containing the object.
+
+        Returns:
+            str: Workspace ID.
+        """
         return self.workspace().id()
 
     # *** PUBLIC methods ***
@@ -285,8 +321,7 @@ class Object(ObjectAPI):
         Formats object details as a string for use with language models.
 
         Returns:
-            str: String containing object information, including label, world coordinates,
-            dimensions, and size in square centimeters.
+            str: String containing object information.
         """
         return f"""- '{self.label()}' at world coordinates [{self.x_com():.2f}, {self.y_com():.2f}] with a width of {
         self.width_m():.2f} meters, a height of {self.height_m():.2f} meters and a size of {
@@ -295,10 +330,9 @@ class Object(ObjectAPI):
     def as_string_for_llm_lbl(self) -> str:
         """
         Formats object details in a line-by-line style, optimized for language model usage.
-        Alternative to as_string_for_llm.
 
         Returns:
-            str: String containing detailed object information, line by line.
+            str: Detailed object information string.
         """
         return f"""- '{self.label()}' at world coordinates [{self.x_com():.2f}, {self.y_com():.2f}] with
     - width: {self.width_m():.2f} meters,
@@ -310,8 +344,7 @@ class Object(ObjectAPI):
         Formats object details for display in a chat interface.
 
         Returns:
-            str: String describing the detected object, including its label,
-            world coordinates, orientation, and dimensions in meters.
+            str: Chat-friendly object description.
         """
         return f"""Detected a new object: {self.label()} at world coordinate ({self.x_com():.2f}, {
         self.y_com():.2f}) with orientation {self.gripper_rotation():.1f} rad and size {
@@ -324,14 +357,13 @@ class Object(ObjectAPI):
         Converts the Object instance to a dictionary that can be JSON serialized.
 
         Returns:
-            Dict[str, Any]: Dictionary representation of the object
+            dict[str, Any]: Dictionary representation of the object.
         """
         return {
-            "id": self.generate_object_id(),  # Generate unique ID
+            "id": self.generate_object_id(),
             "label": self._label,
             "workspace_id": self.get_workspace_id(),
             "timestamp": time.time(),
-            # Position information
             "position": {
                 "center_of_mass": {
                     "x": float(self.x_com()),
@@ -344,7 +376,6 @@ class Object(ObjectAPI):
                     "z": float(self._pose_center.z) if hasattr(self._pose_center, "z") else 0.0,
                 },
             },
-            # Relative coordinates in image
             "image_coordinates": {
                 "center_rel": {"u": float(self._u_rel_o), "v": float(self._v_rel_o)},
                 "center_of_mass_rel": {"u": float(self._u_rel_com), "v": float(self._v_rel_com)},
@@ -355,17 +386,14 @@ class Object(ObjectAPI):
                     "v_max": float(self._v_rel_max),
                 },
             },
-            # Physical dimensions
             "dimensions": {
                 "width_m": float(self._width_m),
                 "height_m": float(self._height_m),
                 "size_m2": float(self._size_m2),
             },
-            # Orientation
             "gripper_rotation": float(self._gripper_rotation),
-            # Additional metadata
-            "confidence": getattr(self, "_confidence", 1.0),  # If you have confidence
-            "class_id": getattr(self, "_class_id", 0),  # If you have class ID
+            "confidence": getattr(self, "_confidence", 1.0),
+            "class_id": getattr(self, "_class_id", 0),
         }
 
     def to_json(self) -> str:
@@ -373,7 +401,7 @@ class Object(ObjectAPI):
         Converts the Object instance to a JSON string.
 
         Returns:
-            str: JSON representation of the object
+            str: JSON representation.
         """
         return json.dumps(self.to_dict(), indent=2)
 
@@ -382,14 +410,10 @@ class Object(ObjectAPI):
         Generates a unique ID for the object based on its properties.
 
         Returns:
-            str: Unique object identifier
+            str: Unique object identifier.
         """
-        # Option 1: Hash-based ID (deterministic)
         id_string = f"{self._label}_{self.x_com():.3f}_{self.y_com():.3f}_{time.time()}"
         return hashlib.md5(id_string.encode(), usedforsecurity=False).hexdigest()[:8]
-
-        # Option 2: UUID-based ID (always unique)
-        # return str(uuid.uuid4())[:8]
 
     @staticmethod
     def _deserialize_mask(mask_data: str, shape: tuple | list, dtype: str = "uint8") -> np.ndarray:
@@ -397,15 +421,15 @@ class Object(ObjectAPI):
         Deserialize base64 string back to numpy mask.
 
         Args:
-            mask_data: Base64 encoded mask string
-            shape: Original shape of the mask (height, width) as tuple or list
-            dtype: Data type of the mask (default: 'uint8')
+            mask_data (str): Base64 encoded mask string.
+            shape (tuple | list): Original shape of the mask (height, width).
+            dtype (str): Data type of the mask (default: 'uint8').
 
         Returns:
-            np.ndarray: Reconstructed mask array
+            np.ndarray: Reconstructed mask array.
 
         Raises:
-            ValueError: If mask_data is invalid or shape doesn't match
+            ValueError: If mask_data is invalid or shape doesn't match.
         """
         if isinstance(shape, list):
             shape = tuple(shape)
@@ -435,11 +459,11 @@ class Object(ObjectAPI):
         Creates an Object instance from a dictionary.
 
         Args:
-            data: Dictionary containing object data (from to_dict())
-            workspace: Workspace instance
+            data (dict[str, Any]): Dictionary containing object data.
+            workspace (Workspace): Workspace instance.
 
         Returns:
-            Object: Reconstructed object instance or None if reconstruction fails
+            Object | None: Reconstructed object instance or None if fails.
         """
         logger = logging.getLogger("robot_workspace")
         try:
@@ -499,11 +523,11 @@ class Object(ObjectAPI):
         Creates an Object instance from a JSON string.
 
         Args:
-            json_str: JSON string containing object data
-            workspace: Workspace instance
+            json_str (str): JSON string containing object data.
+            workspace (Workspace): Workspace instance.
 
         Returns:
-            Object: Reconstructed object instance or None if reconstruction fails
+            Object | None: Reconstructed object instance or None if fails.
         """
         logger = logging.getLogger("robot_workspace")
         try:
@@ -518,19 +542,15 @@ class Object(ObjectAPI):
     @staticmethod
     def calc_width_height(pose_ul: PoseObjectPNP, pose_lr: PoseObjectPNP) -> tuple[float, float]:
         """
-        Calculates the width and the height between the two PoseObjects in meters
-        (basically the vertical distance and the horizontal distance).
+        Calculates the width and the height between two PoseObjects in meters.
 
         Args:
-            pose_ul: PoseObject in the upper left corner of the workspace.
-            pose_lr: PoseObject in the lower right corner of the workspace.
+            pose_ul (PoseObjectPNP): PoseObject in the upper left corner.
+            pose_lr (PoseObjectPNP): PoseObject in the lower right corner.
 
         Returns:
-            tuple[float, float]: width (horizontal distance) and height (vertical distance)
+            tuple[float, float]: (width, height) in meters.
         """
-        # bei niryo ist es so, dass x-Achse des World-Koordinatensystems nach vorne geht und y- nach rechts
-        # deshalb hier width berechnet aus y-Koordinate und height aus x-Koordinate
-        # TODO: prüfen ob das auch für widowx gilt, also ein allgemeines Prinzip ist
         width_m = pose_ul.y - pose_lr.y
         height_m = pose_ul.x - pose_lr.x
 
@@ -541,37 +561,26 @@ class Object(ObjectAPI):
     def _world_to_rel_coordinates(self, pose: PoseObjectPNP) -> tuple[float, float]:
         """
         Converts world coordinates to relative image coordinates.
-        This is the inverse of transform_camera2world_coords.
-
-        Since we don't have a direct inverse transformation, we'll use
-        the workspace corners to interpolate.
 
         Args:
-            pose (PoseObjectPNP): Pose in world coordinates
+            pose (PoseObjectPNP): Pose in world coordinates.
 
         Returns:
-            tuple[float, float]: Relative coordinates (u_rel, v_rel)
+            tuple[float, float]: (u_rel, v_rel) normalized [0, 1].
         """
         # Get workspace corners in world coordinates
-        ul = self._workspace.xy_ul_wc()  # (0, 0) in relative coords
-        lr = self._workspace.xy_lr_wc()  # (1, 1) in relative coords
+        ul = self._workspace.xy_ul_wc()
+        lr = self._workspace.xy_lr_wc()
 
         if ul is None or lr is None:
             return 0.5, 0.5
 
-        # Linear interpolation to find relative coordinates
-        # Assuming linear mapping between world and relative coordinates
-
-        # For u_rel (horizontal): interpolate along x-axis
         x_range = lr.x - ul.x
         u_rel = (pose.x - ul.x) / x_range if abs(x_range) > 1e-06 else 0.5
 
-        # For v_rel (vertical): interpolate along y-axis
-        # Note: y increases to the right in world coords but v increases downward
-        y_range = ul.y - lr.y  # ul.y should be > lr.y
+        y_range = ul.y - lr.y
         v_rel = (ul.y - pose.y) / y_range if abs(y_range) > 1e-06 else 0.5
 
-        # Clamp to [0, 1]
         u_rel = max(0.0, min(1.0, u_rel))
         v_rel = max(0.0, min(1.0, v_rel))
 
@@ -584,37 +593,32 @@ class Object(ObjectAPI):
         Rotates the four corners of a bounding box around a center point.
 
         Args:
-            u_min, v_min: Top-left corner
-            u_max, v_max: Bottom-right corner
-            center_u, center_v: Center of rotation
-            angle: Rotation angle in radians (counter-clockwise)
+            u_min, v_min (int): Top-left corner.
+            u_max, v_max (int): Bottom-right corner.
+            center_u, center_v (int): Center of rotation.
+            angle (float): Rotation angle in radians (counter-clockwise).
 
         Returns:
-            List of four rotated corner coordinates [(u, v), ...]
+            list[tuple[int, int]]: Four rotated corner coordinates.
         """
-        # Define the four corners
         corners = [
-            (u_min, v_min),  # Top-left
-            (u_max, v_min),  # Top-right
-            (u_max, v_max),  # Bottom-right
-            (u_min, v_max),  # Bottom-left
+            (u_min, v_min),
+            (u_max, v_min),
+            (u_max, v_max),
+            (u_min, v_max),
         ]
 
-        # Rotate each corner
         rotated_corners = []
         cos_angle = math.cos(angle)
         sin_angle = math.sin(angle)
 
         for u, v in corners:
-            # Translate to origin
             u_translated = u - center_u
             v_translated = v - center_v
 
-            # Rotate (counter-clockwise)
             u_rotated = u_translated * cos_angle - v_translated * sin_angle
             v_rotated = u_translated * sin_angle + v_translated * cos_angle
 
-            # Translate back
             u_final = int(u_rotated + center_u)
             v_final = int(v_rotated + center_v)
 
@@ -622,87 +626,73 @@ class Object(ObjectAPI):
 
         return rotated_corners
 
-    def _rotate_mask(self, mask: np.ndarray, angle: float, center_u: int, center_v: int) -> np.ndarray:
+    def _rotate_mask(self, mask: np.ndarray, angle: float, center_u: int, center_v: int) -> np.ndarray | None:
         """
         Rotates a segmentation mask around a center point.
 
         Args:
-            mask (np.ndarray): Original mask (2D array, uint8)
-            angle (float): Rotation angle in radians (counter-clockwise)
-            center_u, center_v: Center of rotation in pixel coordinates
+            mask (np.ndarray): Original mask.
+            angle (float): Rotation angle in radians.
+            center_u, center_v (int): Center of rotation.
 
         Returns:
-            np.ndarray: Rotated mask
+            np.ndarray | None: Rotated mask.
         """
         if mask is None:
             return None
 
-        # Convert angle to degrees for OpenCV (OpenCV uses clockwise rotation)
-        angle_degrees = -math.degrees(angle)  # Negative because CV2 rotates clockwise
+        angle_degrees = -math.degrees(angle)
 
-        # Get rotation matrix
         height, width = mask.shape[:2]
         rotation_matrix = cv2.getRotationMatrix2D((float(center_u), float(center_v)), angle_degrees, 1.0)
 
-        # Rotate the mask
         rotated_mask = cv2.warpAffine(mask, rotation_matrix, (width, height), flags=cv2.INTER_NEAREST)
 
         return rotated_mask
 
-    def _translate_mask(self, mask: np.ndarray, delta_u: int, delta_v: int) -> np.ndarray:
+    def _translate_mask(self, mask: np.ndarray, delta_u: int, delta_v: int) -> np.ndarray | None:
         """
         Translates a segmentation mask by a given offset.
 
         Args:
-            mask (np.ndarray): Original mask (2D array, uint8)
-            delta_u, delta_v: Translation offsets in pixels
+            mask (np.ndarray): Original mask.
+            delta_u, delta_v (int): Translation offsets.
 
         Returns:
-            np.ndarray: Translated mask
+            np.ndarray | None: Translated mask.
         """
         if mask is None:
             return None
 
-        # Create translation matrix
         height, width = mask.shape[:2]
         translation_matrix = np.float32([[1, 0, delta_u], [0, 1, delta_v]])
 
-        # Translate the mask
         translated_mask = cv2.warpAffine(mask, translation_matrix, (width, height), flags=cv2.INTER_NEAREST)
 
         return translated_mask
 
     def _calc_size(self) -> None:
-        """
-        Calculates the object's area in square meters.
-
-        If a segmentation mask is available, the size is derived from the mask; otherwise,
-        it is computed as width * height using the bounding box dimensions.
-        """
+        """Calculates the object's area in square meters."""
         area = self._calculate_largest_contour_area()
 
-        if area == 0:  # then there is no segmentation mask or no contour was found
+        if area == 0:
             self._size_m2 = self._width_m * self._height_m
         else:
             ratio_w, ratio_h = self._calc_size_of_pixel_in_m()
             img_shape = self._workspace.img_shape()
             if img_shape:
                 width, height, _nchannels = img_shape
-                area_img = width * height  # number of square pixels that the image has
-                # area of object in pixels / area of workspace in pixels *
-                # * width of workspace in m * height of workspace in m
+                area_img = width * height
                 self._size_m2 = float(area) / float(area_img) * ratio_w * ratio_h
             else:
                 self._size_m2 = 0.0
 
     def _calc_size_of_pixel_in_m(self) -> tuple[float, float]:
         """
-        Computes the physical size of a single pixel (in relative coordinates: 0...1) in meters.
-        For the u-axis and for the v-axis (numbers should be the same, yes they are).
-        It basically just returns the width and height of the workspace in meters. The other information is wrong.
+        Computes the physical size of the workspace in meters.
 
         Returns:
-            tuple[float, float]: Size of one pixel along the u-axis and v-axis in meters.
+            tuple[float, float]: (width_m, height_m).
         """
         if self._width == 0 or self._height == 0:
             return 0.0, 0.0
@@ -716,16 +706,14 @@ class Object(ObjectAPI):
 
     def _update_width_height(self, width: int, height: int) -> None:
         """
-        Updates the object's width and height using values derived from a segmentation mask.
-        Call this method after you determined the segmentation mask of the object.
+        Updates the object's width and height in meters.
 
         Args:
-            width (int): Width of the object in pixels.
-            height (int): Height of the object in pixels.
+            width (int): Width in pixels.
+            height (int): Height in pixels.
         """
         ratio_w, ratio_h = self._calc_size_of_pixel_in_m()
 
-        # from pixel coordinates get relative coordinates
         self._width, self._height = self._calc_rel_coordinates(width, height)
 
         self._width_m = self._width * ratio_w
@@ -733,15 +721,14 @@ class Object(ObjectAPI):
 
     def _calc_pose_from_uv_coords(self, u: int, v: int) -> tuple[PoseObjectPNP, float, float]:
         """
-        Calculates the object's pose in world coordinates based on pixel coordinates.
+        Calculates the object's pose based on pixel coordinates.
 
         Args:
             u (int): Pixel u-coordinate.
             v (int): Pixel v-coordinate.
 
         Returns:
-            tuple[PoseObjectPNP, float, float]: Pose in world coordinates and relative
-            image coordinates (u_rel, v_rel).
+            tuple[PoseObjectPNP, float, float]: (pose, u_rel, v_rel).
         """
         u_rel, v_rel = self._calc_rel_coordinates(u, v)
 
@@ -751,10 +738,7 @@ class Object(ObjectAPI):
 
     @log_start_end_cls()
     def _calc_width_height_m(self) -> None:
-        """
-        Calculates the object's physical width and height in meters using its bounding box
-        in pixel coordinates and the workspace transformation.
-        """
+        """Calculates physical width and height in meters."""
         if self.verbose():
             print(self._label, self._u_rel_min)
 
@@ -768,14 +752,17 @@ class Object(ObjectAPI):
 
     def _calc_rel_coordinates(self, u: int, v: int) -> tuple[float, float]:
         """
-        Converts pixel coordinates to relative coordinates (0-1) based on workspace dimensions.
+        Converts pixel coordinates to relative coordinates (0-1).
 
         Args:
             u (int): Pixel u-coordinate.
             v (int): Pixel v-coordinate.
 
         Returns:
-            tuple[float, float]: Relative coordinates (u_rel, v_rel).
+            tuple[float, float]: (u_rel, v_rel).
+
+        Raises:
+            ValueError: If workspace image shape is invalid.
         """
         img_workspace_shape = self._workspace.img_shape()
         if img_workspace_shape is None:
@@ -795,60 +782,50 @@ class Object(ObjectAPI):
     @log_start_end_cls()
     def _calc_largest_contour(self, mask_8u: np.ndarray) -> None:
         """
-        Determine the largest contour in a 2D segmentation mask and set parameter _largest_contour to it.
+        Determine the largest contour in a 2D segmentation mask.
 
         Args:
-            mask_8u (np.ndarray): 2D segmentation mask as an 8-bit unsigned integer array.
+            mask_8u (np.ndarray): 8-bit unsigned integer array.
+
+        Raises:
+            ValueError: If mask_8u is not uint8.
         """
         if mask_8u.dtype != np.uint8:
             raise ValueError("Input mask must be an 8-bit unsigned integer array.")
 
-        # Find contours
         contours, _ = cv2.findContours(mask_8u, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
             self._largest_contour = None
-            if self.verbose():
-                print("No contours found in mask")
-            return  # Early return
+            return
 
         self._largest_contour = max(contours, key=cv2.contourArea)
 
     def _calculate_largest_contour_area(self) -> int:
         """
-        Computes the area of the largest contour in the object's segmentation mask.
+        Computes the area of the largest contour.
 
         Returns:
-            int: Area of the largest contour in pixels, or 0 if no contours are found.
+            int: Area in pixels.
         """
         if self._largest_contour is None or len(self._largest_contour) == 0:
-            return 0  # No contours found
+            return 0
 
-        # Compute the area of each contour
         largest_area = cv2.contourArea(self._largest_contour)
 
         return int(largest_area)
 
     def _rotated_bounding_box(self) -> tuple[int, int]:
         """
-        Computes the dimensions of the object's rotated bounding box.
+        Computes the dimensions of the rotated bounding box.
 
         Returns:
-            tuple[int, int]: Width and height of the rotated bounding box in pixels.
+            tuple[int, int]: (width, height) in pixels.
         """
         _center, (width, height), _theta = self._get_params_of_min_area_rect()
 
         if width == 0 and height == 0:
             return width, height
 
-        # if self._largest_contour is None or len(self._largest_contour) == 0:
-        #     return 0, 0  # No object detected
-
-        # Get the minimum area rectangle
-        # rect = cv2.minAreaRect(self._largest_contour)
-        # (center, (width, height), angle) = rect
-
-        # _width goes along y-axis and _height goes along x-axis. to keep it this way, it is important, that the
-        # returned width and height go in the same direction as they used to be.
         if self._width > self._height:
             return max(width, height), min(width, height)
         else:
@@ -856,63 +833,34 @@ class Object(ObjectAPI):
 
     def _get_params_of_min_area_rect(self) -> tuple[tuple[int, int], tuple[int, int], float]:
         """
-        Calculate the parameters of the minimum area rectangle around the largest contour.
-
-        This method computes the minimum area rectangle that encloses the largest contour.
-        The rectangle is defined by its center, dimensions (width and height), and rotation angle.
+        Calculate parameters of the minimum area rectangle.
 
         Returns:
-            tuple:
-                - center (tuple[int, int]): The (x, y) coordinates of the rectangle's center.
-                - dimensions (tuple[int, int]): The (width, height) of the rectangle.
-                - theta (float): The rotation angle of the rectangle in degrees.
-
-        If no contours are found, the method returns default values:
-            - center: (0, 0)
-            - dimensions: (0, 0)
-            - theta: 0
+            tuple: (center, dimensions, theta).
         """
-        # If there are no contours, handle this case:
         if self._largest_contour is None or len(self._largest_contour) == 0:
-            print("No contours found!")
-
             return (0, 0), (0, 0), 0
         else:
-            # Get the minimum area rectangle around the largest contour
             rect = cv2.minAreaRect(self._largest_contour)
-
-            # rect returns a tuple (center, (width, height), angle)
             center, (width, height), theta = rect
-
             return (int(center[0]), int(center[1])), (int(width), int(height)), theta
 
     def _calc_gripper_orientation_from_segmentation_mask(self) -> tuple[float, tuple[int, int]]:
         """
-        Determines the optimal orientation for the robot gripper based on the object's segmentation mask.
+        Determines the optimal orientation for the robot gripper.
 
         Returns:
-            tuple[float, tuple[int, int]]: Suggested gripper rotation (radians)
-            and the center of the object in pixel coordinates.
+            tuple[float, tuple[int, int]]: (rotation_radians, center_pixels).
         """
         gripper_rotation = 0.0
 
         center, (width, height), theta = self._get_params_of_min_area_rect()
 
         if not (width == 0 and height == 0):
-            # print('theta:', theta)
-
-            theta_rad = math.radians(theta)  # convert degrees to rad
-
-            # print('theta_rad:', theta)
-
+            theta_rad = math.radians(theta)
             yaw_rel = theta_rad + math.pi / 2 if width < height else theta_rad
-
             yaw_rel += math.pi / 2
-
             yaw_rel = yaw_rel % (2 * math.pi)
-
-            # print(theta, width, height, center, yaw_rel)
-
             gripper_rotation = yaw_rel
 
         return gripper_rotation, center
@@ -922,173 +870,141 @@ class Object(ObjectAPI):
     @staticmethod
     def _calculate_center_of_mass(mask_8u: np.ndarray) -> tuple[float, float] | None:
         """
-        Calculates the center of mass of an object in a segmentation mask.
+        Calculates the center of mass of an object in a mask.
 
         Args:
-            mask_8u (numpy.ndarray): A 2D segmentation mask of the object (0...255, uint8).
+            mask_8u (np.ndarray): 2D mask (uint8).
 
         Returns:
-            tuple: (cx, cy), the pixel coordinates of the center of mass in (x, y) format.
-                   Returns None if the mask does not contain any non-zero values.
+            tuple[float, float] | None: (cx, cy) in pixels, or None.
         """
-        # Ensure the mask is binary: Convert non-zero values to 1
         binary_mask = (mask_8u > 0).astype(np.uint8)
-
-        # Get the indices of non-zero pixels
         non_zero_indices = np.nonzero(binary_mask)
 
-        if len(non_zero_indices[0]) == 0:  # No object found in the mask
+        if len(non_zero_indices[0]) == 0:
             return None
 
-        # Calculate the center of mass
-        cx = np.mean(non_zero_indices[1])  # Mean of column indices (x-coordinate)
-        cy = np.mean(non_zero_indices[0])  # Mean of row indices (y-coordinate)
+        cx = np.mean(non_zero_indices[1])
+        cy = np.mean(non_zero_indices[0])
 
         return float(cx), float(cy)
 
     # *** PUBLIC properties ***
 
     def label(self) -> str:
-        """Object label (e.g., 'pencil', 'cube')."""
+        """Object label."""
         return self._label
 
     def uv_rel_o(self) -> tuple[float, float]:
-        """Object center in relative image coordinates (0-1)."""
+        """Object center in relative coordinates."""
         return self._u_rel_o, self._v_rel_o
 
     def u_rel_o(self) -> float:
-        """Object center u-coordinate in relative image coordinates (0-1)."""
+        """Object center u-coordinate."""
         return self._u_rel_o
 
     def v_rel_o(self) -> float:
-        """Object center v-coordinate in relative image coordinates (0-1)."""
+        """Object center v-coordinate."""
         return self._v_rel_o
 
     def pose_center(self) -> PoseObjectPNP:
-        """Geometric center pose of the object."""
+        """Geometric center pose."""
         if self._pose_center is None:
             raise ValueError("Pose center not initialized")
         return self._pose_center
 
     def x_center(self) -> float:
-        """Geometric center x-coordinate in meters."""
+        """Geometric center x (meters)."""
         return self.pose_center().x
 
     def y_center(self) -> float:
-        """Geometric center y-coordinate in meters."""
+        """Geometric center y (meters)."""
         return self.pose_center().y
 
     def xy_center(self) -> tuple[float, float]:
-        """Geometric center (x, y) coordinates in meters."""
+        """Geometric center (x, y) (meters)."""
         pc = self.pose_center()
         return pc.x, pc.y
 
     def pose_com(self) -> PoseObjectPNP:
-        """Center of mass pose of the object."""
+        """Center of mass pose."""
         if self._pose_com is None:
             raise ValueError("Pose CoM not initialized")
         return self._pose_com
 
     def x_com(self) -> float:
-        """Center of mass x-coordinate in meters."""
+        """Center of mass x (meters)."""
         return self.pose_com().x
 
     def y_com(self) -> float:
-        """Center of mass y-coordinate in meters."""
+        """Center of mass y (meters)."""
         return self.pose_com().y
 
     def xy_com(self) -> tuple[float, float]:
-        """Center of mass (x, y) coordinates in meters."""
+        """Center of mass (x, y) (meters)."""
         pcom = self.pose_com()
         return pcom.x, pcom.y
 
     def coordinate(self) -> list[float]:
-        """Center of mass (x, y) coordinates in meters."""
+        """Center of mass (x, y) (meters)."""
         pcom = self.pose_com()
         return [pcom.x, pcom.y]
 
     def shape_m(self) -> tuple[float, float]:
-        """Object width and height in meters."""
+        """Width and height in meters."""
         return self._width_m, self._height_m
 
     def width_m(self) -> float:
-        """Object width in meters (measured along y-axis)."""
+        """Width in meters."""
         return self._width_m
 
     def height_m(self) -> float:
-        """Object height in meters (measured along x-axis)."""
+        """Height in meters."""
         return self._height_m
 
     def size_m2(self) -> float:
-        """Object area in square meters."""
+        """Area in square meters."""
         return self._size_m2
 
     def largest_contour(self) -> np.ndarray | None:
-        """Largest contour of the object segmentation mask."""
+        """Largest contour of mask."""
         return self._largest_contour
 
     def gripper_rotation(self) -> float:
-        """Optimal gripper rotation angle in radians."""
+        """Gripper rotation (radians)."""
         return self._gripper_rotation
 
     def workspace(self) -> Workspace:
-        """Workspace instance containing the object."""
+        """Associated workspace."""
         return self._workspace
 
     def verbose(self) -> bool:
-        """Whether verbose logging is enabled."""
+        """Verbose mode status."""
         return self._verbose
 
     # *** PRIVATE variables ***
 
-    # label of object such as chocolate bar, apple, pen, ...
     _label: str = ""
-
-    # center of object in relative coordinates in image of workspace from 0 to 1
     _u_rel_o: float = 0.0
     _v_rel_o: float = 0.0
-
-    # PoseObject of center of object
     _pose_center: PoseObjectPNP | None = None
-
-    # center of mass of object in relative coordinates in image of workspace from 0 to 1
     _u_rel_com: float = 0.0
     _v_rel_com: float = 0.0
-
-    # PoseObject of center of mass
     _pose_com: PoseObjectPNP | None = None
-
-    # dimension of bounding box in relative coordinates in image of workspace from 0 to 1
     _u_rel_min: float = 0.0
     _v_rel_min: float = 0.0
     _u_rel_max: float = 0.0
     _v_rel_max: float = 0.0
-
-    # width and height of image in relative coordinates in image of workspace from 0 to 1
     _width: float = 0.0
     _height: float = 0.0
-
-    # width and height in meter
     _width_m: float = 0.0
     _height_m: float = 0.0
-    # height of object in z-coordinate. Could be estimated using monocular depth estimation
     _depth_m: float = 0.0
-
-    # size of object in m^2. if segmentation mask available, then
     _size_m2: float = 0.0
-
     _largest_contour: np.ndarray | None = None
-
-    # gripper rotation needed to pick this object
     _gripper_rotation: float = 0.0
-
-    # workspace this object can be found in
     _workspace: Workspace = None
-
     _original_mask_8u: np.ndarray | None = None
-
     _verbose: bool = False
-
-    # Additional metadata
     _confidence: float = 1.0
     _class_id: int = 0
