@@ -335,6 +335,7 @@ class TestNiryoWorkspaceEnvironmentProperty:
         env.get_robot_target_pose_from_rel = mock_transform
 
         from robot_workspace.config import PoseConfig, WorkspaceConfig
+
         config = WorkspaceConfig(id="test_ws", observation_pose=PoseConfig())
         workspace = NiryoWorkspace("test_ws", env, config=config)
 

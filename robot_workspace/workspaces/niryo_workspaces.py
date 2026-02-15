@@ -20,7 +20,9 @@ class NiryoWorkspaces(Workspaces):
     Collection of NiryoWorkspace instances supporting multiple workspaces.
     """
 
-    def __init__(self, environment: EnvironmentProtocol, verbose: bool = False, config_path: str = "config/niryo_config.yaml") -> None:
+    def __init__(
+        self, environment: EnvironmentProtocol, verbose: bool = False, config_path: str = "config/niryo_config.yaml"
+    ) -> None:
         """
         Initialize NiryoWorkspaces collection from configuration.
 

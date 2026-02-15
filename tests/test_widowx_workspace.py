@@ -202,10 +202,11 @@ class TestWidowXWorkspace:
         from robot_workspace.config import PoseConfig as NiryoPoseConfig
         from robot_workspace.config import WorkspaceConfig as NiryoWorkspaceConfig
         from robot_workspace.workspaces.niryo_workspace import NiryoWorkspace
+
         niryo_config = NiryoWorkspaceConfig(
             id="niryo_ws",
             observation_pose=NiryoPoseConfig(x=0.173, y=-0.002, z=0.277, roll=-3.042, pitch=1.327, yaw=-3.027),
-            image_shape=(640, 480, 3)
+            image_shape=(640, 480, 3),
         )
         NiryoWorkspace("niryo_ws", mock_widowx_environment, config=niryo_config)
 

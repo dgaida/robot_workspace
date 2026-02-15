@@ -24,7 +24,9 @@ class WidowXWorkspaces(Workspaces):
     gripper-mounted camera.
     """
 
-    def __init__(self, environment: EnvironmentProtocol, verbose: bool = False, config_path: str = "config/widowx_config.yaml") -> None:
+    def __init__(
+        self, environment: EnvironmentProtocol, verbose: bool = False, config_path: str = "config/widowx_config.yaml"
+    ) -> None:
         """
         Initialize WidowXWorkspaces collection from configuration.
 

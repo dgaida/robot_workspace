@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from .objects.pose_object import PoseObjectPNP
 
+
 class EnvironmentProtocol(Protocol):
     """Interface for robot environment implementations."""
 
@@ -13,6 +14,7 @@ class EnvironmentProtocol(Protocol):
     def get_robot_target_pose_from_rel(
         self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
     ) -> PoseObjectPNP: ...
+
 
 class WorkspaceProtocol(Protocol):
     """Interface for workspace implementations."""

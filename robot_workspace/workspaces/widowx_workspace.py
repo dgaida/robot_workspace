@@ -81,9 +81,7 @@ class WidowXWorkspace(Workspace):
 
         return workspace
 
-    def transform_camera2world_coords(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> PoseObjectPNP:
+    def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
         calculate the corresponding pose in world coordinates.
@@ -156,8 +154,7 @@ class WidowXWorkspace(Workspace):
         """
         if not self._config:
             raise ValueError(
-                f"No configuration provided for workspace '{self._id}'. "
-                "Initialize with config_path or from_config()."
+                f"No configuration provided for workspace '{self._id}'. " "Initialize with config_path or from_config()."
             )
 
         if not self._config.observation_pose:

@@ -30,20 +30,22 @@ def mock_environment():
     env.get_robot_target_pose_from_rel = mock_transform
     return env
 
+
 @pytest.fixture
 def niryo_ws_config():
     return WorkspaceConfig(
         id="niryo_ws",
         observation_pose=PoseConfig(x=0.173, y=-0.002, z=0.277, roll=-3.042, pitch=1.327, yaw=-3.027),
-        image_shape=(640, 480, 3)
+        image_shape=(640, 480, 3),
     )
+
 
 @pytest.fixture
 def widowx_ws_config():
     return WorkspaceConfig(
         id="widowx_ws",
         observation_pose=PoseConfig(x=0.3, y=0.0, z=0.25, roll=0.0, pitch=0.0, yaw=0.0),
-        image_shape=(1920, 1080, 3)
+        image_shape=(1920, 1080, 3),
     )
 
 
@@ -163,7 +165,7 @@ class TestWidowXWorkspaceEdgeCases:
         workspace = WidowXWorkspace("widowx_ws", mock_environment, config=widowx_ws_config)
 
         # Remove the environment mock
-        workspace._environment = None # type: ignore
+        workspace._environment = None  # type: ignore
 
         # Should use fallback interpolation
         pose = workspace.transform_camera2world_coords("widowx_ws", 0.5, 0.5, 0.0)

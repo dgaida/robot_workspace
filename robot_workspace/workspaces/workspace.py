@@ -91,9 +91,7 @@ class Workspace(ABC):
         self._img_shape = img_shape
 
     @abstractmethod
-    def transform_camera2world_coords(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> PoseObjectPNP:
+    def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
         calculate the corresponding pose in world coordinates. The parameter yaw is useful, if we want to pick at the

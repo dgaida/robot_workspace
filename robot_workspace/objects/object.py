@@ -1086,7 +1086,7 @@ class Object(ObjectAPI):
     _gripper_rotation: float = 0.0
 
     # workspace this object can be found in
-    _workspace: Workspace = None # type: ignore
+    _workspace: Workspace = None  # type: ignore
 
     _original_mask_8u: np.ndarray | None = None
 

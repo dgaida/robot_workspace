@@ -159,9 +159,7 @@ class Objects(list):
 
         return objects
 
-    def get_nearest_detected_object(
-        self, coordinate: list[float], label: str | None = None
-    ) -> tuple[Object | None, float]:
+    def get_nearest_detected_object(self, coordinate: list[float], label: str | None = None) -> tuple[Object | None, float]:
         """
         Retrieves a detected object nearest to a specified world coordinate, optionally filtering by label.
 
@@ -233,7 +231,9 @@ class Objects(list):
 
         return (Object.to_dict(smallest_object), size) if serializable else (smallest_object, size)
 
-    def get_detected_objects_sorted(self, ascending: bool = True, serializable: bool = False) -> Objects | list[dict[str, Any]]:
+    def get_detected_objects_sorted(
+        self, ascending: bool = True, serializable: bool = False
+    ) -> Objects | list[dict[str, Any]]:
         """
         Returns the detected objects sorted by size in square meters.
 
