@@ -1,4 +1,3 @@
-from __future__ import annotations
 """
 Configuration management for robot workspaces.
 
@@ -6,9 +5,12 @@ Provides configuration loading from YAML files for workspace parameters,
 observation poses, and other robot-specific settings.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
+from typing import Any
+
 import yaml
 
 
@@ -23,7 +25,7 @@ class PoseConfig:
     pitch: float = 0.0
     yaw: float = 0.0
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Convert to dictionary."""
         return {"x": self.x, "y": self.y, "z": self.z, "roll": self.roll, "pitch": self.pitch, "yaw": self.yaw}
 
@@ -34,12 +36,12 @@ class WorkspaceConfig:
 
     id: str
     observation_pose: PoseConfig
-    image_shape: Tuple[int, int, int] = (640, 480, 3)
-    corners: Optional[Dict[str, PoseConfig]] = None
+    image_shape: tuple[int, int, int] = (640, 480, 3)
+    corners: dict[str, PoseConfig] | None = None
     robot_type: str = "niryo"
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> WorkspaceConfig:
+    def from_dict(cls, data: dict[str, Any]) -> WorkspaceConfig:
         """
         Create WorkspaceConfig from dictionary.
 
@@ -84,12 +86,12 @@ class RobotConfig:
     """Configuration for robot-specific parameters."""
 
     name: str
-    workspaces: List[WorkspaceConfig] = field(default_factory=list)
-    simulation_workspaces: List[WorkspaceConfig] = field(default_factory=list)
-    default_workspace_id: Optional[str] = None
+    workspaces: list[WorkspaceConfig] = field(default_factory=list)
+    simulation_workspaces: list[WorkspaceConfig] = field(default_factory=list)
+    default_workspace_id: str | None = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> RobotConfig:
+    def from_dict(cls, data: dict[str, Any]) -> RobotConfig:
         """
         Create RobotConfig from dictionary.
 
@@ -122,8 +124,8 @@ class ConfigManager:
     """
 
     def __init__(self) -> None:
-        self._robot_configs: Dict[str, RobotConfig] = {}
-        self._workspace_configs: Dict[str, WorkspaceConfig] = {}
+        self._robot_configs: dict[str, RobotConfig] = {}
+        self._workspace_configs: dict[str, WorkspaceConfig] = {}
 
     def load_from_yaml(self, path: str) -> None:
         """
@@ -140,7 +142,7 @@ class ConfigManager:
         if not config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {path}")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             data = yaml.safe_load(f)
 
         # Load robot configurations
@@ -155,15 +157,15 @@ class ConfigManager:
             for ws_config in robot_config.simulation_workspaces:
                 self._workspace_configs[ws_config.id] = ws_config
 
-    def get_robot_config(self, robot_name: str) -> Optional[RobotConfig]:
+    def get_robot_config(self, robot_name: str) -> RobotConfig | None:
         """Get configuration for a specific robot."""
         return self._robot_configs.get(robot_name)
 
-    def get_workspace_config(self, workspace_id: str) -> Optional[WorkspaceConfig]:
+    def get_workspace_config(self, workspace_id: str) -> WorkspaceConfig | None:
         """Get configuration for a specific workspace."""
         return self._workspace_configs.get(workspace_id)
 
-    def get_workspace_configs(self, robot_name: str, simulation: bool = False) -> List[WorkspaceConfig]:
+    def get_workspace_configs(self, robot_name: str, simulation: bool = False) -> list[WorkspaceConfig]:
         """
         Get all workspace configurations for a robot.
 
@@ -182,7 +184,7 @@ class ConfigManager:
             return robot_config.simulation_workspaces
         return robot_config.workspaces
 
-    def list_workspace_ids(self, robot_name: Optional[str] = None) -> List[str]:
+    def list_workspace_ids(self, robot_name: str | None = None) -> list[str]:
         """
         List all available workspace IDs.
 

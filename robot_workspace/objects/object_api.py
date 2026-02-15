@@ -4,7 +4,6 @@ from __future__ import annotations
 # Documentation and type definitions are final.
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List, Optional, Union
 
 
 class Location(Enum):
@@ -22,7 +21,7 @@ class Location(Enum):
     NONE = None
 
     @staticmethod
-    def convert_str2location(location: Optional[Union[Location, str]]) -> Location:
+    def convert_str2location(location: Location | str | None) -> Location:
         """
         Converts a string to a Location enum if it matches one of the Location values.
         If already a Location, returns it unchanged.
@@ -55,9 +54,6 @@ class ObjectAPI(ABC):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self) -> None:
-        pass
-
     # *** PUBLIC GET methods ***
 
     # *** PUBLIC methods ***
@@ -79,7 +75,7 @@ class ObjectAPI(ABC):
         pass
 
     @abstractmethod
-    def coordinate(self) -> List[float]:
+    def coordinate(self) -> list[float]:
         """
         Returns (x,y) world coordinates of the center of mass of the object, measured in meters.
         At these coordinates you can pick the object. The List contains two float values.

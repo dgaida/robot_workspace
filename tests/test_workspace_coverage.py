@@ -1,12 +1,12 @@
 """
 Additional tests for workspace classes to increase coverage
-Add these tests to existing test files or create new ones
 """
 
 import os
 from unittest.mock import Mock
 
 import pytest
+import yaml
 
 from robot_workspace.config import ConfigManager, PoseConfig, WorkspaceConfig
 from robot_workspace.objects.pose_object import PoseObjectPNP
@@ -228,7 +228,7 @@ class TestConfigManagerEdgeCases:
         try:
             manager = ConfigManager()
             # Should raise YAML error
-            with pytest.raises(Exception):  # yaml.YAMLError or similar
+            with pytest.raises(yaml.YAMLError):  # yaml.YAMLError or similar
                 manager.load_from_yaml(temp_path)
         finally:
             if os.path.exists(temp_path):

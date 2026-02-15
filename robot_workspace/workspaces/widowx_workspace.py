@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 # Defines a workspace where the pick-and-place robot WidowX 250 6DOF can pick or place objects from.
 # Documentation and type definitions are almost final (chatgpt might be able to improve it).
 from ..common.logger import log_start_end_cls
-from ..config import WorkspaceConfig
 from ..objects.pose_object import PoseObjectPNP
 from .workspace import Workspace
 
 if TYPE_CHECKING:
+    from ..config import WorkspaceConfig
     from ..protocols import EnvironmentProtocol
 
 
@@ -28,7 +28,7 @@ class WidowXWorkspace(Workspace):
         workspace_id: str,
         environment: EnvironmentProtocol,
         verbose: bool = False,
-        config: Optional[WorkspaceConfig] = None,
+        config: WorkspaceConfig | None = None,
     ) -> None:
         """
         Inits the workspace.

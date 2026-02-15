@@ -62,7 +62,7 @@ class Workspaces(list["Workspace"]):
         """
         return self[index]
 
-    def get_workspace_by_id(self, id: str) -> Optional[Workspace]:
+    def get_workspace_by_id(self, id: str) -> Workspace | None:
         """
         Return the Workspace object with the given id, if existent, else None is returned.
 
@@ -101,7 +101,7 @@ class Workspaces(list["Workspace"]):
         """
         return self[index].id()
 
-    def get_observation_pose(self, workspace_id: str) -> Optional[PoseObjectPNP]:
+    def get_observation_pose(self, workspace_id: str) -> PoseObjectPNP | None:
         """
         Return the observation pose of the given workspace id
 
@@ -129,7 +129,7 @@ class Workspaces(list["Workspace"]):
             return workspace.width_m(), workspace.height_m()
         return 0.0, 0.0
 
-    def get_img_shape(self, workspace_id: str) -> Optional[tuple[int, int, int]]:
+    def get_img_shape(self, workspace_id: str) -> tuple[int, int, int] | None:
         """
         Return the shape of the image of the workspace with the given workspace id
 
@@ -145,7 +145,7 @@ class Workspaces(list["Workspace"]):
     # *** PUBLIC methods ***
 
     # TODO: this is not yet the final implementation
-    def get_visible_workspace(self, camera_pose: PoseObjectPNP) -> Optional[Workspace]:
+    def get_visible_workspace(self, camera_pose: PoseObjectPNP) -> Workspace | None:
         for workspace in self:
             # the is_visible checks which workspace is visible.
             if workspace.is_visible(camera_pose):

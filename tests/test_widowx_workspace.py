@@ -207,7 +207,7 @@ class TestWidowXWorkspace:
             observation_pose=NiryoPoseConfig(x=0.173, y=-0.002, z=0.277, roll=-3.042, pitch=1.327, yaw=-3.027),
             image_shape=(640, 480, 3)
         )
-        niryo_ws = NiryoWorkspace("niryo_ws", mock_widowx_environment, config=niryo_config)
+        NiryoWorkspace("niryo_ws", mock_widowx_environment, config=niryo_config)
 
         # WidowX uses third-person camera, different observation pose
         obs_pose = widowx_ws.observation_pose()

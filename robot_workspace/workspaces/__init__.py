@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Workspaces package for the robot_environment system.
 
@@ -21,6 +19,8 @@ Example:
     # Get a specific workspace by ID
     workspace = workspaces.get_workspace_by_id("niryo_ws")
 """
+
+from __future__ import annotations
 
 from .niryo_workspace import NiryoWorkspace
 from .niryo_workspaces import NiryoWorkspaces

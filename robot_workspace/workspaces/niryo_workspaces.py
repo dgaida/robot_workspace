@@ -42,7 +42,7 @@ class NiryoWorkspaces(Workspaces):
         """Get the left workspace (index 0)."""
         return self.get_workspace(0)
 
-    def get_workspace_right(self) -> Optional[Workspace]:
+    def get_workspace_right(self) -> Workspace | None:
         """Get the right workspace (index 1)."""
         if len(self) > 1:
             return self.get_workspace(1)
@@ -52,7 +52,7 @@ class NiryoWorkspaces(Workspaces):
         """Get the left workspace ID."""
         return self.get_workspace_id(0)
 
-    def get_workspace_right_id(self) -> Optional[str]:
+    def get_workspace_right_id(self) -> str | None:
         """Get the right workspace ID."""
         if len(self) > 1:
             return self.get_workspace_id(1)

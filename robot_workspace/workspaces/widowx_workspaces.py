@@ -46,7 +46,7 @@ class WidowXWorkspaces(Workspaces):
         """Get the main workspace (index 0)."""
         return self.get_workspace(0)
 
-    def get_workspace_left(self) -> Optional[Workspace]:
+    def get_workspace_left(self) -> Workspace | None:
         """
         Get the left workspace (index 0 in multi-workspace setup).
 
@@ -57,7 +57,7 @@ class WidowXWorkspaces(Workspaces):
             return self.get_workspace(0)
         return None
 
-    def get_workspace_right(self) -> Optional[Workspace]:
+    def get_workspace_right(self) -> Workspace | None:
         """
         Get the right workspace (index 1 in multi-workspace setup).
 
@@ -72,7 +72,7 @@ class WidowXWorkspaces(Workspaces):
         """Get the main workspace ID."""
         return self.get_workspace_id(0)
 
-    def get_workspace_left_id(self) -> Optional[str]:
+    def get_workspace_left_id(self) -> str | None:
         """
         Get the left workspace ID.
 
@@ -83,7 +83,7 @@ class WidowXWorkspaces(Workspaces):
             return self.get_workspace_id(0)
         return None
 
-    def get_workspace_right_id(self) -> Optional[str]:
+    def get_workspace_right_id(self) -> str | None:
         """
         Get the right workspace ID.
 

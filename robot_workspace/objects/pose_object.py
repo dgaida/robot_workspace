@@ -214,7 +214,7 @@ class PoseObjectPNP:
         :rtype: list[float, float, float, float, float, float, float]
 
         """
-        return [self.x, self.y, self.z] + list(self.euler_to_quaternion(self.roll, self.pitch, self.yaw))
+        return [self.x, self.y, self.z, *list(self.euler_to_quaternion(self.roll, self.pitch, self.yaw))]
 
     @staticmethod
     def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float, float, float, float]:

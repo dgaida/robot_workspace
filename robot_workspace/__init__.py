@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """
 Robot Environment - A framework for robotic pick-and-place operations with vision.
 
 This package provides a comprehensive system for controlling robotic arms with
 integrated computer vision, workspace management, and manipulation capabilities.
 """
+
+from __future__ import annotations
 
 from .config import ConfigManager, PoseConfig, RobotConfig, WorkspaceConfig
 from .objects.object import Object

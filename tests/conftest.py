@@ -83,12 +83,10 @@ def pytest_collection_modifyitems(config, items):
     skip_redis = pytest.mark.skip(reason="requires Redis server")
 
     for item in items:
-        if "slow" in item.keywords and not config.getoption("-m") == "slow":
+        if "slow" in item.keywords and config.getoption("-m") != "slow":
             item.add_marker(skip_slow)
-        if "integration" in item.keywords:
-            # Skip integration tests by default unless explicitly requested
-            if not config.getoption("-m") or "integration" not in config.getoption("-m"):
-                item.add_marker(skip_integration)
+        if "integration" in item.keywords and (not config.getoption("-m") or "integration" not in config.getoption("-m")):
+            item.add_marker(skip_integration)
         if "requires_robot" in item.keywords:
             item.add_marker(skip_robot)
         if "requires_redis" in item.keywords:

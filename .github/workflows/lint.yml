@@ -73,5 +73,5 @@ jobs:
 
       - name: Run security checks with Bandit
         run: |
-          bandit -r robot_workspace/ -ll -f github
+          bandit -r robot_workspace/ -ll
         continue-on-error: false

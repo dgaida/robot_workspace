@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -13,8 +12,9 @@ from .object import Object
 from .object_api import Location
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from ..workspaces.workspace import Workspace
-    from .object_api import Location
 
 
 class Objects(list):
@@ -24,7 +24,7 @@ class Objects(list):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, iterable: Optional[Iterable[Object]] = None, verbose: bool = False) -> None:
+    def __init__(self, iterable: Iterable[Object] | None = None, verbose: bool = False) -> None:
         """
         Initializes the Objects instance.
 
@@ -46,8 +46,8 @@ class Objects(list):
 
     @log_start_end_cls()
     def get_detected_object(
-        self, coordinate: List[float], label: Optional[str] = None, serializable: bool = False
-    ) -> Optional[Union[Object, Dict[str, Any]]]:
+        self, coordinate: list[float], label: str | None = None, serializable: bool = False
+    ) -> Object | dict[str, Any] | None:
         """
         Retrieves a detected object at or near a specified world coordinate, optionally filtering by label.
 
@@ -74,9 +74,9 @@ class Objects(list):
 
     def get_detected_objects(
         self,
-        location: Union[Location, str] = Location.NONE,
-        coordinate: Optional[List[float]] = None,
-        label: Optional[str] = None,
+        location: Location | str = Location.NONE,
+        coordinate: list[float] | None = None,
+        label: str | None = None,
     ) -> Objects:
         """
         Get list of objects detected by the camera in the workspace.
@@ -131,10 +131,10 @@ class Objects(list):
 
     def get_detected_objects_serializable(
         self,
-        location: Union[Location, str] = Location.NONE,
-        coordinate: Optional[List[float]] = None,
-        label: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        location: Location | str = Location.NONE,
+        coordinate: list[float] | None = None,
+        label: str | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Get list of objects detected by the camera in the workspace.
 
@@ -160,8 +160,8 @@ class Objects(list):
         return objects
 
     def get_nearest_detected_object(
-        self, coordinate: List[float], label: Optional[str] = None
-    ) -> tuple[Optional[Object], float]:
+        self, coordinate: list[float], label: str | None = None
+    ) -> tuple[Object | None, float]:
         """
         Retrieves a detected object nearest to a specified world coordinate, optionally filtering by label.
 
@@ -203,7 +203,7 @@ class Objects(list):
         """
         return f"""{', '.join(f"'{item.label()}'" for item in self)}"""
 
-    def get_largest_detected_object(self, serializable: bool = False) -> Union[tuple[Object, float], tuple[Dict[str, Any], float]]:
+    def get_largest_detected_object(self, serializable: bool = False) -> tuple[Object, float] | tuple[dict[str, Any], float]:
         """
         Returns the largest detected object based on its size in square meters.
 
@@ -218,7 +218,7 @@ class Objects(list):
 
         return (Object.to_dict(largest_object), size) if serializable else (largest_object, size)
 
-    def get_smallest_detected_object(self, serializable: bool = False) -> Union[tuple[Object, float], tuple[Dict[str, Any], float]]:
+    def get_smallest_detected_object(self, serializable: bool = False) -> tuple[Object, float] | tuple[dict[str, Any], float]:
         """
         Returns the smallest detected object based on its size in square meters.
 
@@ -233,7 +233,7 @@ class Objects(list):
 
         return (Object.to_dict(smallest_object), size) if serializable else (smallest_object, size)
 
-    def get_detected_objects_sorted(self, ascending: bool = True, serializable: bool = False) -> Union[Objects, List[Dict[str, Any]]]:
+    def get_detected_objects_sorted(self, ascending: bool = True, serializable: bool = False) -> Objects | list[dict[str, Any]]:
         """
         Returns the detected objects sorted by size in square meters.
 
@@ -255,7 +255,7 @@ class Objects(list):
     # *** HELPER METHODE FÜR REDIS PUBLISHER ***
 
     @staticmethod
-    def objects_to_dict_list(objects: Objects) -> List[Dict[str, Any]]:
+    def objects_to_dict_list(objects: Objects) -> list[dict[str, Any]]:
         """
         Converts a list of Object instances to a list of dictionaries.
 
@@ -268,7 +268,7 @@ class Objects(list):
         return [obj.to_dict() for obj in objects]
 
     @staticmethod
-    def dict_list_to_objects(dict_list: List[Dict[str, Any]], workspace: Workspace) -> Objects:
+    def dict_list_to_objects(dict_list: list[dict[str, Any]], workspace: Workspace) -> Objects:
         """
         Converts a list of dictionaries back to Object instances.
 

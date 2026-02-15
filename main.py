@@ -278,7 +278,7 @@ def main():
     demo_workspace_without_robot()
 
     # Demo 3: Object creation and properties
-    objects, workspace = demo_objects_with_mock_workspace()
+    objects, _workspace = demo_objects_with_mock_workspace()
 
     # Demo 4: Objects collection operations
     objects_collection = demo_objects_collection(objects)

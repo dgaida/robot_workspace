@@ -11,8 +11,8 @@ from .object_api import ObjectAPI
 if TYPE_CHECKING:
     from ..workspaces.workspace import Workspace
     from .pose_object import PoseObjectPNP
-
 import base64
+import hashlib
 import json
 import logging
 import math
@@ -49,7 +49,7 @@ class Object(ObjectAPI):
         v_min: int,
         u_max: int,
         v_max: int,
-        mask_8u: Optional[np.ndarray],
+        mask_8u: np.ndarray | None,
         workspace: Workspace,
         verbose: bool = False,
     ) -> None:
@@ -85,7 +85,7 @@ class Object(ObjectAPI):
         # Initialize the object with the common initialization logic
         self._init_object_properties(u_min, v_min, u_max, v_max, mask_8u)
 
-    def _init_object_properties(self, u_min: int, v_min: int, u_max: int, v_max: int, mask_8u: Optional[np.ndarray]) -> None:
+    def _init_object_properties(self, u_min: int, v_min: int, u_max: int, v_max: int, mask_8u: np.ndarray | None) -> None:
         """
         Common initialization logic for object properties.
         This method is called by __init__ and can be reused by set_pose_com.
@@ -252,7 +252,7 @@ class Object(ObjectAPI):
 
         return new_u_min, new_v_min, new_u_max, new_v_max
 
-    def _apply_pose_transform_to_mask(self, rotation_delta: float, translation: tuple[int, int]) -> Optional[np.ndarray]:
+    def _apply_pose_transform_to_mask(self, rotation_delta: float, translation: tuple[int, int]) -> np.ndarray | None:
         """Apply rotation and translation to segmentation mask."""
         if self._original_mask_8u is None:
             return None
@@ -384,19 +384,18 @@ class Object(ObjectAPI):
         Returns:
             str: Unique object identifier
         """
-        import hashlib
 
         # import uuid
 
         # Option 1: Hash-based ID (deterministic)
         id_string = f"{self._label}_{self.x_com():.3f}_{self.y_com():.3f}_{time.time()}"
-        return hashlib.md5(id_string.encode()).hexdigest()[:8]
+        return hashlib.md5(id_string.encode(), usedforsecurity=False).hexdigest()[:8]
 
         # Option 2: UUID-based ID (always unique)
         # return str(uuid.uuid4())[:8]
 
     @staticmethod
-    def _deserialize_mask(mask_data: str, shape: Union[tuple, list], dtype: str = "uint8") -> np.ndarray:
+    def _deserialize_mask(mask_data: str, shape: tuple | list, dtype: str = "uint8") -> np.ndarray:
         """
         Deserialize base64 string back to numpy mask.
 
@@ -431,10 +430,10 @@ class Object(ObjectAPI):
             mask = mask.reshape(shape)
             return mask
         except Exception as e:
-            raise ValueError(f"Failed to deserialize mask: {e}")
+            raise ValueError(f"Failed to deserialize mask: {e}") from e
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], workspace: Workspace) -> Optional[Object]:
+    def from_dict(cls, data: dict[str, Any], workspace: Workspace) -> Object | None:
         """
         Creates an Object instance from a dictionary.
 
@@ -498,7 +497,7 @@ class Object(ObjectAPI):
             return None
 
     @classmethod
-    def from_json(cls, json_str: str, workspace: Workspace) -> Optional[Object]:
+    def from_json(cls, json_str: str, workspace: Workspace) -> Object | None:
         """
         Creates an Object instance from a JSON string.
 
@@ -568,18 +567,12 @@ class Object(ObjectAPI):
 
         # For u_rel (horizontal): interpolate along x-axis
         x_range = lr.x - ul.x
-        if abs(x_range) > 1e-6:
-            u_rel = (pose.x - ul.x) / x_range
-        else:
-            u_rel = 0.5
+        u_rel = (pose.x - ul.x) / x_range if abs(x_range) > 1e-06 else 0.5
 
         # For v_rel (vertical): interpolate along y-axis
         # Note: y increases to the right in world coords but v increases downward
         y_range = ul.y - lr.y  # ul.y should be > lr.y
-        if abs(y_range) > 1e-6:
-            v_rel = (ul.y - pose.y) / y_range
-        else:
-            v_rel = 0.5
+        v_rel = (ul.y - pose.y) / y_range if abs(y_range) > 1e-06 else 0.5
 
         # Clamp to [0, 1]
         u_rel = max(0.0, min(1.0, u_rel))
@@ -697,7 +690,7 @@ class Object(ObjectAPI):
             ratio_w, ratio_h = self._calc_size_of_pixel_in_m()
             img_shape = self._workspace.img_shape()
             if img_shape:
-                width, height, nchannels = img_shape
+                width, height, _nchannels = img_shape
                 area_img = width * height  # number of square pixels that the image has
                 # area of object in pixels / area of workspace in pixels *
                 # * width of workspace in m * height of workspace in m
@@ -845,7 +838,7 @@ class Object(ObjectAPI):
         Returns:
             tuple[int, int]: Width and height of the rotated bounding box in pixels.
         """
-        center, (width, height), theta = self._get_params_of_min_area_rect()
+        _center, (width, height), _theta = self._get_params_of_min_area_rect()
 
         if width == 0 and height == 0:
             return width, height
@@ -915,10 +908,7 @@ class Object(ObjectAPI):
 
             # print('theta_rad:', theta)
 
-            if width < height:
-                yaw_rel = theta_rad + math.pi / 2
-            else:
-                yaw_rel = theta_rad
+            yaw_rel = theta_rad + math.pi / 2 if width < height else theta_rad
 
             yaw_rel += math.pi / 2
 
@@ -933,7 +923,7 @@ class Object(ObjectAPI):
     # *** PRIVATE STATIC/CLASS methods ***
 
     @staticmethod
-    def _calculate_center_of_mass(mask_8u: np.ndarray) -> Optional[tuple[float, float]]:
+    def _calculate_center_of_mass(mask_8u: np.ndarray) -> tuple[float, float] | None:
         """
         Calculates the center of mass of an object in a segmentation mask.
 
@@ -1036,7 +1026,7 @@ class Object(ObjectAPI):
         """Object area in square meters."""
         return self._size_m2
 
-    def largest_contour(self) -> Optional[np.ndarray]:
+    def largest_contour(self) -> np.ndarray | None:
         """Largest contour of the object segmentation mask."""
         return self._largest_contour
 
@@ -1062,14 +1052,14 @@ class Object(ObjectAPI):
     _v_rel_o: float = 0.0
 
     # PoseObject of center of object
-    _pose_center: Optional[PoseObjectPNP] = None
+    _pose_center: PoseObjectPNP | None = None
 
     # center of mass of object in relative coordinates in image of workspace from 0 to 1
     _u_rel_com: float = 0.0
     _v_rel_com: float = 0.0
 
     # PoseObject of center of mass
-    _pose_com: Optional[PoseObjectPNP] = None
+    _pose_com: PoseObjectPNP | None = None
 
     # dimension of bounding box in relative coordinates in image of workspace from 0 to 1
     _u_rel_min: float = 0.0
@@ -1090,7 +1080,7 @@ class Object(ObjectAPI):
     # size of object in m^2. if segmentation mask available, then
     _size_m2: float = 0.0
 
-    _largest_contour: Optional[np.ndarray] = None
+    _largest_contour: np.ndarray | None = None
 
     # gripper rotation needed to pick this object
     _gripper_rotation: float = 0.0
@@ -1098,6 +1088,6 @@ class Object(ObjectAPI):
     # workspace this object can be found in
     _workspace: Workspace = None # type: ignore
 
-    _original_mask_8u: Optional[np.ndarray] = None
+    _original_mask_8u: np.ndarray | None = None
 
     _verbose: bool = False
