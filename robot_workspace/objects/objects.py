@@ -19,8 +19,10 @@ if TYPE_CHECKING:
 
 class Objects(list[Object]):
     """
-    A class representing a list of Object instances. Objects are stored in VisualCortex class and therefore are not
-    real things, but just seen from a camera.
+    A class representing a list of Object instances.
+
+    Objects are typically stored in a workspace and represent physical entities detected by vision.
+    This class provides several spatial query methods to find objects based on coordinates, labels, or size.
     """
 
     # *** CONSTRUCTORS ***
@@ -29,7 +31,7 @@ class Objects(list[Object]):
         Initializes the Objects instance.
 
         Args:
-            iterable (Optional[Iterable[Object]]): An iterable of Object instances. Defaults to an empty list.
+            iterable (Iterable[Object], optional): An iterable of Object instances. Defaults to an empty list.
             verbose (bool): If True, enables verbose logging.
         """
         if iterable is None:
@@ -51,19 +53,16 @@ class Objects(list[Object]):
         """
         Retrieves a detected object at or near a specified world coordinate, optionally filtering by label.
 
-        This method checks for objects detected by the camera that are close to the specified coordinate (within
-        2 centimeters). If multiple objects meet the criteria, the first object in the list is returned.
+        Checks for objects that are within a 2-centimeter radius of the specified coordinate.
+        If multiple objects meet the criteria, the first one found is returned.
 
         Args:
-            coordinate (List[float]): A 2D coordinate in the world coordinate system [x, y].
-                Only objects within a 2-centimeter radius of this coordinate are considered.
-            label (Optional[str]): An optional filter for the object's label. If specified, only an object
-                with the matching label is returned.
+            coordinate (list[float]): A 2D coordinate in world units [x, y].
+            label (str, optional): An optional filter for the object's label.
             serializable (bool): If True, returns a dictionary representation instead of an Object instance.
 
         Returns:
-            Optional[Union[Object, Dict[str, Any]]]: The first object detected near the given coordinate.
-            Returns `None` if no such object is found.
+            Object | dict[str, Any] | None: The first object detected near the given coordinate, or None if not found.
         """
         detected_objects = self.get_detected_objects(Location.CLOSE_TO, coordinate, label)
 
@@ -80,28 +79,24 @@ class Objects(list[Object]):
         label: str | None = None,
     ) -> Objects:
         """
-        Get list of objects detected by the camera in the workspace.
+        Returns a list of objects filtered by spatial location, coordinate, and label.
 
         Args:
-            location (Location, optional): acts as filter. can have the values:
-            - "left next to": Only objects left of the given coordinate are returned,
-            - "right next to": Only objects right of the given coordinate are returned,
-            - "above": Only objects above the given coordinate are returned,
-            - "below": Only objects below the given coordinate are returned,
-            - "close to": Only objects close to the given coordinate are returned (within 2 centimeters),
-            - None: no filter, all objects are returned (default).
-            coordinate (List[float], optional): some (x,y) coordinate in the world coordinate system.
-            Together with 'location' it acts as a filter. Required if 'location' is specified.
-            label (str, optional): Only objects with the given label are returned.
+            location (Location | str): Spatial filter. Values can be "left next to", "right next to",
+                "above", "below", "close to", or Location enum equivalents.
+            coordinate (list[float], optional): (x, y) coordinate in meters used for spatial filtering.
+                Required if 'location' is not NONE.
+            label (str, optional): Filter by object label (substring match).
 
         Returns:
-            Optional["Objects"]: list of objects detected by the camera in the workspace.
+            Objects: A collection of filtered objects.
+
+        Raises:
+            ValueError: If coordinate is missing but required for the specified location filter.
         """
         detected_objects = self
 
         if label is not None:
-            # TODO: ich muss hier obj.label in teile splitten und prüfen ob label == eine der teile ist. weil pen auch in pencil ist
-            # detected_objects = Objects(obj for obj in self if obj.label() == label)
             detected_objects = Objects(obj for obj in self if label in obj.label())
 
         location = Location.convert_str2location(location)
@@ -137,22 +132,15 @@ class Objects(list[Object]):
         label: str | None = None,
     ) -> list[dict[str, Any]]:
         """
-        Get list of objects detected by the camera in the workspace.
+        Similar to get_detected_objects but returns a list of dictionaries.
 
         Args:
-            location (Location, optional): acts as filter. can have the values:
-            - "left next to": Only objects left of the given coordinate are returned,
-            - "right next to": Only objects right of the given coordinate are returned,
-            - "above": Only objects above the given coordinate are returned,
-            - "below": Only objects below the given coordinate are returned,
-            - "close to": Only objects close to the given coordinate are returned (within 2 centimeters),
-            - None: no filter, all objects are returned (default).
-            coordinate (List[float], optional): some (x,y) coordinate in the world coordinate system.
-            Together with 'location' it acts as a filter. Required if 'location' is specified.
-            label (str, optional): Only objects with the given label are returned.
+            location (Location | str): Spatial filter.
+            coordinate (list[float], optional): Reference (x, y) coordinate.
+            label (str, optional): Filter by object label.
 
         Returns:
-            Optional["Objects"]: list of objects detected by the camera in the workspace.
+            list[dict[str, Any]]: List of dictionary representations of the filtered objects.
         """
         detected_objects = self.get_detected_objects(location, coordinate, label)
 
@@ -162,22 +150,14 @@ class Objects(list[Object]):
 
     def get_nearest_detected_object(self, coordinate: list[float], label: str | None = None) -> tuple[Object | None, float]:
         """
-        Retrieves a detected object nearest to a specified world coordinate, optionally filtering by label.
-
-        This method goes through all objects detected by the camera and returns the one
-        (optionally with the given label) nearest to the given coordinate.
+        Finds the object nearest to a specified coordinate.
 
         Args:
-            coordinate (List[float]): A 2D coordinate in the world coordinate system [x, y].
-            The object nearest to this coordinate is returned.
-            label (Optional[str]): An optional filter for the object's label. If specified, only an object
-                with the matching label is returned.
+            coordinate (list[float]): Target (x, y) coordinate.
+            label (str, optional): If specified, only consider objects with this label.
 
         Returns:
-            tuple:
-            - Optional[Object]: The object nearest to the given coordinate (and matching the label, if provided).
-              Returns `None` if no such object is found.
-            - float: distance (RMSE) of the returned object to the given coordinate in meters.
+            tuple[Object | None, float]: (nearest_object, distance_in_meters).
         """
         nearest_object = None
         min_distance = float("inf")
@@ -195,21 +175,22 @@ class Objects(list[Object]):
 
     def get_detected_objects_as_comma_separated_string(self) -> str:
         """
-        Returns detected objects as "," separated string.
+        Returns the labels of all detected objects as a comma-separated string.
 
         Returns:
-            detected objects as "," separated string.
+            str: Comma-separated labels.
         """
         return f"""{', '.join(f"'{item.label()}'" for item in self)}"""
 
     def get_largest_detected_object(self, serializable: bool = False) -> tuple[Object, float] | tuple[dict[str, Any], float]:
         """
-        Returns the largest detected object based on its size in square meters.
+        Identifies the largest object by area.
+
+        Args:
+            serializable (bool): If True, returns a dictionary instead of an Object.
 
         Returns:
-            tuple: (largest_object, largest_size_m2) where:
-                - largest_object (Object): The largest detected object.
-                - largest_size_m2 (float): The size of the largest object in square meters.
+            tuple: (largest_object, area_m2).
         """
         largest_object = max(self, key=lambda obj: obj.size_m2())
 
@@ -222,12 +203,13 @@ class Objects(list[Object]):
 
     def get_smallest_detected_object(self, serializable: bool = False) -> tuple[Object, float] | tuple[dict[str, Any], float]:
         """
-        Returns the smallest detected object based on its size in square meters.
+        Identifies the smallest object by area.
+
+        Args:
+            serializable (bool): If True, returns a dictionary instead of an Object.
 
         Returns:
-            tuple: (smallest_object, smallest_size_m2) where:
-                - smallest_object (Object): The smallest detected object.
-                - smallest_size_m2 (float): The size of the smallest object in square meters.
+            tuple: (smallest_object, area_m2).
         """
         smallest_object = min(self, key=lambda obj: obj.size_m2())
 
@@ -242,14 +224,14 @@ class Objects(list[Object]):
         self, ascending: bool = True, serializable: bool = False
     ) -> Objects | list[dict[str, Any]]:
         """
-        Returns the detected objects sorted by size in square meters.
+        Returns objects sorted by their size.
 
         Args:
-            ascending (bool): If True, sorts the objects in ascending order.
-                              If False, sorts in descending order.
+            ascending (bool): Sorting order. Defaults to True.
+            serializable (bool): If True, returns a list of dictionaries.
 
         Returns:
-            Objects: The list of detected objects sorted by size.
+            Objects | list[dict[str, Any]]: Sorted collection of objects.
         """
         sorted_objs = Objects(sorted(self, key=lambda obj: obj.size_m2(), reverse=not ascending))
 
@@ -270,38 +252,28 @@ class Objects(list[Object]):
         Converts a list of Object instances to a list of dictionaries.
 
         Args:
-            objects: List of Object instances
+            objects (list[Object]): List of Object instances.
 
         Returns:
-            List[Dict[str, Any]]: List of dictionary representations
+            list[dict[str, Any]]: List of dictionary representations.
         """
         return [obj.to_dict() for obj in objects]
 
     @staticmethod
     def dict_list_to_objects(dict_list: list[dict[str, Any]], workspace: Workspace) -> Objects:
         """
-        Converts a list of dictionaries back to Object instances.
+        Reconstructs an Objects collection from a list of dictionaries.
 
         Args:
-            dict_list: List of dictionary representations
-            workspace: Workspace instance
+            dict_list (list[dict[str, Any]]): List of object dictionaries.
+            workspace (Workspace): The workspace to associate with the objects.
 
         Returns:
-            List[Object]: List of reconstructed Object instances
+            Objects: A collection of reconstructed objects.
         """
-        # print("***********")
-        # print(workspace)
-        # print("***********")
-
         objects = Objects()
         for obj_dict in dict_list:
-            # print("***********")
-            # print(obj_dict)
-            # print("***********")
             obj = Object.from_dict(obj_dict, workspace)
-            # print("***********")
-            # print(obj)
-            # print("***********")
             if obj is not None:
                 objects.append(obj)
         return objects
@@ -312,9 +284,10 @@ class Objects(list[Object]):
 
     def verbose(self) -> bool:
         """
+        Returns whether verbose logging is enabled.
 
-        Returns: True, if verbose is on, else False
-
+        Returns:
+            bool: True if verbose, else False.
         """
         return self._verbose
 
