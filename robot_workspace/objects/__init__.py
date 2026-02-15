@@ -5,15 +5,17 @@ Provides classes for representing detected objects with their physical
 properties, positions, and segmentation information.
 """
 
+from __future__ import annotations
+
 from .object import Object
+from .object_api import Location, ObjectAPI
 from .objects import Objects
-from .object_api import ObjectAPI, Location
 from .pose_object import PoseObjectPNP
 
 __all__ = [
     "Location",
     "Object",
-    "Objects",
     "ObjectAPI",
+    "Objects",
     "PoseObjectPNP",
 ]

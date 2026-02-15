@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 # class defining a decorator to log functions entry and exit
 # final
-
 import inspect
 import logging
+from typing import Any, Callable, TypeVar, cast
+
+F = TypeVar("F", bound=Callable[..., Any])
 
 
-def log_start_end(verbose: bool = True):
+def log_start_end(verbose: bool = True) -> Callable[[F], F]:
     """
     Returns a decorator to log the start and end of a function.
 
@@ -16,8 +20,8 @@ def log_start_end(verbose: bool = True):
         function: Decorator for logging start and end of functions.
     """
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
+    def decorator(func: F) -> F:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             logger = logging.getLogger("robot_workspace")
             if verbose:
                 logger.debug(f"START {func.__name__}")
@@ -26,18 +30,18 @@ def log_start_end(verbose: bool = True):
                 logger.debug(f"END {func.__name__}")
             return result
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator
 
 
-def log_start_end_cls():
+def log_start_end_cls() -> Callable[[F], F]:
     """
     Decorator to log the start and end of a method, including class name and line number.
     """
 
-    def decorator(func):
-        def wrapper(self, *args, **kwargs):
+    def decorator(func: F) -> F:
+        def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
             logger = logging.getLogger("robot_workspace")
             # Get verbose attribute from the instance or class
             verbose = getattr(self, "_verbose", False)
@@ -57,6 +61,6 @@ def log_start_end_cls():
                 logger.debug(f"END {func.__name__} (Class: {class_name}, Line: {func_line_number})")
             return result
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator

@@ -2,14 +2,16 @@
 Unit tests for Object class
 """
 
-import pytest
-import numpy as np
 import json
 import math
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
+from robot_workspace import Location
 from robot_workspace.objects.object import Object
 from robot_workspace.objects.pose_object import PoseObjectPNP
-from robot_workspace import Location
 
 
 class TestObjectAdvancedInitialization:
@@ -355,7 +357,7 @@ class TestObjectMinAreaRect:
 
         obj = Object("test", 100, 100, 300, 200, mask, mock_workspace)
 
-        center, dimensions, theta = obj._get_params_of_min_area_rect()
+        center, dimensions, _theta = obj._get_params_of_min_area_rect()
 
         assert center[0] > 0
         assert center[1] > 0
@@ -508,7 +510,7 @@ class TestObjectGripperOrientation:
 
         obj = Object("test", 100, 200, 300, 250, mask, mock_workspace)
 
-        rotation, center = obj._calc_gripper_orientation_from_segmentation_mask()
+        rotation, _center = obj._calc_gripper_orientation_from_segmentation_mask()
 
         assert isinstance(rotation, float)
         assert 0 <= rotation <= 2 * math.pi

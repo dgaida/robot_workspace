@@ -2,12 +2,26 @@
 Unit tests for Workspace classes
 """
 
-import pytest
 from unittest.mock import Mock
-from robot_workspace.workspaces.niryo_workspace import NiryoWorkspace
-from robot_workspace.workspaces.workspaces import Workspaces
-from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
+
+import pytest
+
+from robot_workspace.config import PoseConfig, WorkspaceConfig
 from robot_workspace.objects.pose_object import PoseObjectPNP
+from robot_workspace.workspaces.niryo_workspace import NiryoWorkspace
+from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
+from robot_workspace.workspaces.workspaces import Workspaces
+
+
+@pytest.fixture
+def workspace_config():
+    """Create a default workspace configuration for testing"""
+    return WorkspaceConfig(
+        id="niryo_ws",
+        observation_pose=PoseConfig(x=0.173, y=-0.002, z=0.277, roll=-3.042, pitch=1.327, yaw=-3.027),
+        image_shape=(640, 480, 3),
+        robot_type="niryo",
+    )
 
 
 @pytest.fixture
@@ -36,39 +50,35 @@ def mock_environment():
 class TestNiryoWorkspace:
     """Test suite for NiryoWorkspace class"""
 
-    def test_initialization(self, mock_environment):
+    def test_initialization(self, mock_environment, workspace_config):
         """Test workspace initialization"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         assert workspace.id() == "niryo_ws"
         assert workspace.environment() == mock_environment
 
-    def test_observation_pose_niryo_ws(self, mock_environment):
-        """Test observation pose for niryo_ws"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+    def test_observation_pose_from_config(self, mock_environment):
+        """Test observation pose comes from config"""
+        custom_config = WorkspaceConfig(
+            id="custom_ws",
+            observation_pose=PoseConfig(x=1.0, y=2.0, z=3.0, roll=0, pitch=0, yaw=0),
+            image_shape=(640, 480, 3),
+        )
+        workspace = NiryoWorkspace("custom_ws", mock_environment, config=custom_config)
         pose = workspace.observation_pose()
 
-        assert isinstance(pose, PoseObjectPNP)
-        assert pose.x is not None
+        assert pose.x == 1.0
+        assert pose.y == 2.0
+        assert pose.z == 3.0
 
-    def test_observation_pose_gazebo(self, mock_environment):
-        """Test observation pose for gazebo_1"""
-        workspace = NiryoWorkspace("gazebo_1", mock_environment)
-        pose = workspace.observation_pose()
+    def test_initialization_without_config_raises_error(self, mock_environment):
+        """Test that initialization without config raises ValueError"""
+        with pytest.raises(ValueError, match="No configuration provided"):
+            NiryoWorkspace("niryo_ws", mock_environment)
 
-        assert isinstance(pose, PoseObjectPNP)
-        assert pose.x is not None
-
-    def test_observation_pose_unknown(self, mock_environment):
-        """Test observation pose for unknown workspace"""
-        workspace = NiryoWorkspace("unknown_ws", mock_environment)
-        pose = workspace.observation_pose()
-
-        assert pose is None
-
-    def test_transform_camera2world_coords(self, mock_environment):
+    def test_transform_camera2world_coords(self, mock_environment, workspace_config):
         """Test camera to world coordinate transformation"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         pose = workspace.transform_camera2world_coords("niryo_ws", 0.5, 0.5, 0.0)
 
@@ -76,18 +86,18 @@ class TestNiryoWorkspace:
         assert pose.x is not None
         assert pose.y is not None
 
-    def test_corners_of_workspace(self, mock_environment):
+    def test_corners_of_workspace(self, mock_environment, workspace_config):
         """Test that all four corners are set"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         assert workspace.xy_ul_wc() is not None
         assert workspace.xy_ll_wc() is not None
         assert workspace.xy_ur_wc() is not None
         assert workspace.xy_lr_wc() is not None
 
-    def test_width_height(self, mock_environment):
+    def test_width_height(self, mock_environment, workspace_config):
         """Test width and height calculation"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         width = workspace.width_m()
         height = workspace.height_m()
@@ -95,16 +105,16 @@ class TestNiryoWorkspace:
         assert width > 0
         assert height > 0
 
-    def test_center_of_workspace(self, mock_environment):
+    def test_center_of_workspace(self, mock_environment, workspace_config):
         """Test center calculation"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
         center = workspace.xy_center_wc()
 
         assert isinstance(center, PoseObjectPNP)
 
-    def test_is_visible(self, mock_environment):
+    def test_is_visible(self, mock_environment, workspace_config):
         """Test visibility check"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         # Get observation pose and check if visible from there
         obs_pose = workspace.observation_pose()
@@ -113,9 +123,9 @@ class TestNiryoWorkspace:
         # Should be visible from observation pose
         assert is_visible is True
 
-    def test_is_not_visible(self, mock_environment):
+    def test_is_not_visible(self, mock_environment, workspace_config):
         """Test visibility check with different pose"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         # Random pose far from observation pose
         random_pose = PoseObjectPNP(10.0, 10.0, 10.0, 0.0, 0.0, 0.0)
@@ -123,31 +133,31 @@ class TestNiryoWorkspace:
 
         assert is_visible is False
 
-    def test_set_img_shape(self, mock_environment):
+    def test_set_img_shape(self, mock_environment, workspace_config):
         """Test setting image shape"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         workspace.set_img_shape((640, 480, 3))
         shape = workspace.img_shape()
 
         assert shape == (640, 480, 3)
 
-    def test_str_representation(self, mock_environment):
+    def test_str_representation(self, mock_environment, workspace_config):
         """Test string representation"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
         str_repr = str(workspace)
 
         assert "niryo_ws" in str_repr
         assert "Workspace" in str_repr
 
-    def test_repr_equals_str(self, mock_environment):
+    def test_repr_equals_str(self, mock_environment, workspace_config):
         """Test that repr equals str"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
         assert repr(workspace) == str(workspace)
 
-    def test_verbose_property(self, mock_environment):
+    def test_verbose_property(self, mock_environment, workspace_config):
         """Test verbose property"""
-        workspace = NiryoWorkspace("niryo_ws", mock_environment, verbose=True)
+        workspace = NiryoWorkspace("niryo_ws", mock_environment, verbose=True, config=workspace_config)
         assert workspace.verbose() is True
 
 
@@ -160,21 +170,21 @@ class TestWorkspaces:
 
         assert len(workspaces) == 0
 
-    def test_append_workspace(self, mock_environment):
+    def test_append_workspace(self, mock_environment, workspace_config):
         """Test appending workspace"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("test_ws", mock_environment)
+        ws = NiryoWorkspace("test_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
         assert len(workspaces) == 1
         assert workspaces[0] == ws
 
-    def test_get_workspace(self, mock_environment):
+    def test_get_workspace(self, mock_environment, workspace_config):
         """Test getting workspace by index"""
         workspaces = Workspaces()
-        ws1 = NiryoWorkspace("ws1", mock_environment)
-        ws2 = NiryoWorkspace("ws2", mock_environment)
+        ws1 = NiryoWorkspace("ws1", mock_environment, config=workspace_config)
+        ws2 = NiryoWorkspace("ws2", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws1)
         workspaces.append_workspace(ws2)
@@ -182,11 +192,11 @@ class TestWorkspaces:
         assert workspaces.get_workspace(0) == ws1
         assert workspaces.get_workspace(1) == ws2
 
-    def test_get_workspace_by_id(self, mock_environment):
+    def test_get_workspace_by_id(self, mock_environment, workspace_config):
         """Test getting workspace by ID"""
         workspaces = Workspaces()
-        ws1 = NiryoWorkspace("ws1", mock_environment)
-        ws2 = NiryoWorkspace("ws2", mock_environment)
+        ws1 = NiryoWorkspace("ws1", mock_environment, config=workspace_config)
+        ws2 = NiryoWorkspace("ws2", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws1)
         workspaces.append_workspace(ws2)
@@ -195,11 +205,11 @@ class TestWorkspaces:
         assert workspaces.get_workspace_by_id("ws2") == ws2
         assert workspaces.get_workspace_by_id("nonexistent") is None
 
-    def test_get_workspace_ids(self, mock_environment):
+    def test_get_workspace_ids(self, mock_environment, workspace_config):
         """Test getting all workspace IDs"""
         workspaces = Workspaces()
-        ws1 = NiryoWorkspace("ws1", mock_environment)
-        ws2 = NiryoWorkspace("ws2", mock_environment)
+        ws1 = NiryoWorkspace("ws1", mock_environment, config=workspace_config)
+        ws2 = NiryoWorkspace("ws2", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws1)
         workspaces.append_workspace(ws2)
@@ -210,37 +220,37 @@ class TestWorkspaces:
         assert "ws1" in ids
         assert "ws2" in ids
 
-    def test_get_workspace_id(self, mock_environment):
+    def test_get_workspace_id(self, mock_environment, workspace_config):
         """Test getting workspace ID by index"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("test_ws", mock_environment)
+        ws = NiryoWorkspace("test_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
         assert workspaces.get_workspace_id(0) == "test_ws"
 
-    def test_get_workspace_home_id(self, mock_environment):
+    def test_get_workspace_home_id(self, mock_environment, workspace_config):
         """Test getting home workspace ID"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("home_ws", mock_environment)
+        ws = NiryoWorkspace("home_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
         assert workspaces.get_workspace_home_id() == "home_ws"
 
-    def test_get_home_workspace(self, mock_environment):
+    def test_get_home_workspace(self, mock_environment, workspace_config):
         """Test getting home workspace"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("home_ws", mock_environment)
+        ws = NiryoWorkspace("home_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
         assert workspaces.get_home_workspace() == ws
 
-    def test_get_observation_pose(self, mock_environment):
+    def test_get_observation_pose(self, mock_environment, workspace_config):
         """Test getting observation pose by workspace ID"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("niryo_ws", mock_environment)
+        ws = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
@@ -248,10 +258,10 @@ class TestWorkspaces:
 
         assert isinstance(pose, PoseObjectPNP)
 
-    def test_get_width_height_m(self, mock_environment):
+    def test_get_width_height_m(self, mock_environment, workspace_config):
         """Test getting workspace dimensions"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("niryo_ws", mock_environment)
+        ws = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
@@ -260,10 +270,10 @@ class TestWorkspaces:
         assert width > 0
         assert height > 0
 
-    def test_get_img_shape(self, mock_environment):
+    def test_get_img_shape(self, mock_environment, workspace_config):
         """Test getting image shape"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("niryo_ws", mock_environment)
+        ws = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
         ws.set_img_shape((640, 480, 3))
 
         workspaces.append_workspace(ws)
@@ -272,11 +282,11 @@ class TestWorkspaces:
 
         assert shape == (640, 480, 3)
 
-    def test_get_visible_workspace(self, mock_environment):
+    def test_get_visible_workspace(self, mock_environment, workspace_config):
         """Test getting visible workspace"""
         workspaces = Workspaces()
-        ws1 = NiryoWorkspace("niryo_ws", mock_environment)
-        ws2 = NiryoWorkspace("gazebo_1", mock_environment)
+        ws1 = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
+        ws2 = NiryoWorkspace("gazebo_1", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws1)
         workspaces.append_workspace(ws2)
@@ -287,10 +297,10 @@ class TestWorkspaces:
 
         assert visible == ws1
 
-    def test_get_visible_workspace_none(self, mock_environment):
+    def test_get_visible_workspace_none(self, mock_environment, workspace_config):
         """Test when no workspace is visible"""
         workspaces = Workspaces()
-        ws = NiryoWorkspace("niryo_ws", mock_environment)
+        ws = NiryoWorkspace("niryo_ws", mock_environment, config=workspace_config)
 
         workspaces.append_workspace(ws)
 
@@ -315,9 +325,9 @@ class TestNiryoWorkspaces:
 
         workspaces = NiryoWorkspaces(mock_environment)
 
-        assert len(workspaces) == 1
-        assert workspaces[0].id() == "niryo_ws2"
-        # assert workspaces[1].id() == "niryo_ws_right"
+        # In config/niryo_config.yaml there are 4 real workspaces
+        assert len(workspaces) == 4
+        assert workspaces[0].id() == "niryo_ws"
 
     def test_initialization_simulation(self, mock_environment):
         """Test initialization with simulation"""
@@ -325,7 +335,8 @@ class TestNiryoWorkspaces:
 
         workspaces = NiryoWorkspaces(mock_environment)
 
-        assert len(workspaces) == 2
+        # In config/niryo_config.yaml there are 3 simulation workspaces
+        assert len(workspaces) == 3
         assert workspaces[0].id() == "gazebo_1"
         assert workspaces[1].id() == "gazebo_2"
 
@@ -335,36 +346,36 @@ class TestNiryoWorkspaces:
 
         assert isinstance(workspaces, Workspaces)
 
-    def test_can_add_more_workspaces(self, mock_environment):
+    def test_can_add_more_workspaces(self, mock_environment, workspace_config):
         """Test that additional workspaces can be added"""
         workspaces = NiryoWorkspaces(mock_environment)
 
-        # Start with 1 workspace (real robot)
+        # Start with 4 workspaces (real robot from config)
         initial_count = len(workspaces)
-        assert initial_count == 1
+        assert initial_count == 4
 
         # Add another workspace
-        ws = NiryoWorkspace("custom_ws", mock_environment)
+        ws = NiryoWorkspace("custom_ws", mock_environment, config=workspace_config)
         workspaces.append_workspace(ws)
 
-        # Should now have 2 workspaces
-        assert len(workspaces) == 2
+        # Should now have 5 workspaces
+        assert len(workspaces) == 5
 
-    def test_can_add_more_workspaces_simulation(self, mock_environment):
+    def test_can_add_more_workspaces_simulation(self, mock_environment, workspace_config):
         """Test that additional workspaces can be added in simulation"""
         mock_environment.use_simulation.return_value = True
         workspaces = NiryoWorkspaces(mock_environment)
 
-        # Start with 2 workspaces (simulation)
+        # Start with 3 workspaces (simulation from config)
         initial_count = len(workspaces)
-        assert initial_count == 2
+        assert initial_count == 3
 
         # Add another workspace
-        ws = NiryoWorkspace("custom_ws", mock_environment)
+        ws = NiryoWorkspace("custom_ws", mock_environment, config=workspace_config)
         workspaces.append_workspace(ws)
 
-        # Should now have 3 workspaces
-        assert len(workspaces) == 3
+        # Should now have 4 workspaces
+        assert len(workspaces) == 4
 
     def test_get_workspace_left_simulation(self, mock_environment):
         """Test getting left workspace in simulation"""
@@ -385,19 +396,19 @@ class TestNiryoWorkspaces:
         assert right_ws.id() == "gazebo_2"
 
     def test_get_workspace_left_real_robot(self, mock_environment):
-        """Test getting left workspace on real robot (only one workspace)"""
+        """Test getting left workspace on real robot"""
         mock_environment.use_simulation.return_value = False
         workspaces = NiryoWorkspaces(mock_environment)
 
         left_ws = workspaces.get_workspace_left()
         assert left_ws is not None
-        assert left_ws.id() == "niryo_ws2"  # The only workspace
+        assert left_ws.id() == "niryo_ws"
 
     def test_get_workspace_right_real_robot(self, mock_environment):
-        """Test getting right workspace on real robot (should be None)"""
+        """Test getting right workspace on real robot"""
         mock_environment.use_simulation.return_value = False
         workspaces = NiryoWorkspaces(mock_environment)
 
         right_ws = workspaces.get_workspace_right()
-        # Real robot only has one workspace, so right should be None
-        assert right_ws is None
+        assert right_ws is not None
+        assert right_ws.id() == "niryo_ws2"

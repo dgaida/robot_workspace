@@ -1,10 +1,8 @@
+from __future__ import annotations
+
 # abstract Class defining an object. An object has pixel coordinates as well as world coordinates.
 # Documentation and type definitions are final.
-
 from abc import ABC, abstractmethod
-
-from typing import List, Union
-
 from enum import Enum
 
 
@@ -23,7 +21,7 @@ class Location(Enum):
     NONE = None
 
     @staticmethod
-    def convert_str2location(location: Union["Location", str, None]) -> "Location":
+    def convert_str2location(location: Location | str | None) -> Location:
         """
         Converts a string to a Location enum if it matches one of the Location values.
         If already a Location, returns it unchanged.
@@ -56,9 +54,6 @@ class ObjectAPI(ABC):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self):
-        pass
-
     # *** PUBLIC GET methods ***
 
     # *** PUBLIC methods ***
@@ -80,7 +75,7 @@ class ObjectAPI(ABC):
         pass
 
     @abstractmethod
-    def coordinate(self) -> List[float]:
+    def coordinate(self) -> list[float]:
         """
         Returns (x,y) world coordinates of the center of mass of the object, measured in meters.
         At these coordinates you can pick the object. The List contains two float values.

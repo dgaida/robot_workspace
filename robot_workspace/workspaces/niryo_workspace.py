@@ -1,19 +1,18 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
 # Defines a workspace where the pick-and-place robot Niryo Ned2 can pick or place objects from.
 # Not final, but works
 # Documentation and type definitions are almost final (chatgpt might be able to improve it).
-
 from ..common.logger import log_start_end_cls
-
-from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
-from ..config import WorkspaceConfig
+from .workspace import Workspace
 
-from typing import Optional
-import math
-import logging
-
-# if TYPE_CHECKING:
-#     from ..environment import Environment
+if TYPE_CHECKING:
+    from ..config import WorkspaceConfig
+    from ..protocols import EnvironmentProtocol
 
 
 class NiryoWorkspace(Workspace):
@@ -23,14 +22,21 @@ class NiryoWorkspace(Workspace):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, workspace_id: str, environment, verbose: bool = False, config: Optional["WorkspaceConfig"] = None):
+    def __init__(
+        self,
+        workspace_id: str,
+        environment: EnvironmentProtocol,
+        verbose: bool = False,
+        config: WorkspaceConfig | None = None,
+    ) -> None:
         """
         Inits the workspace.
 
         Args:
             workspace_id: id of the workspace
-            environment: object of the Environment class
-            verbose:
+            environment: object implementing EnvironmentProtocol
+            verbose: enable verbose output
+            config: Optional workspace configuration
         """
         self._environment = environment
         self._config = config
@@ -43,7 +49,7 @@ class NiryoWorkspace(Workspace):
     # *** PUBLIC methods ***
 
     @classmethod
-    def from_config(cls, config: "WorkspaceConfig", environment, verbose: bool = False) -> "NiryoWorkspace":
+    def from_config(cls, config: WorkspaceConfig, environment: EnvironmentProtocol, verbose: bool = False) -> NiryoWorkspace:
         """
         Create NiryoWorkspace from configuration.
 
@@ -54,20 +60,11 @@ class NiryoWorkspace(Workspace):
 
         Returns:
             NiryoWorkspace instance
-
-        Example:
-            >>> from robot_workspace.config import ConfigManager
-            >>> config_mgr = ConfigManager()
-            >>> config_mgr.load_from_yaml('config/niryo_config.yaml')
-            >>> ws_config = config_mgr.get_workspace_config('niryo_ws')
-            >>> workspace = NiryoWorkspace.from_config(ws_config, environment)
         """
         workspace = cls(config.id, environment, verbose, config)
 
         # Override observation pose from config if available
         if config.observation_pose:
-            from ..objects.pose_object import PoseObjectPNP
-
             workspace._observation_pose = PoseObjectPNP(
                 x=config.observation_pose.x,
                 y=config.observation_pose.y,
@@ -83,16 +80,10 @@ class NiryoWorkspace(Workspace):
 
         return workspace
 
-    # @log_start_end_cls()
-    def transform_camera2world_coords(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> "PoseObjectPNP":
+    def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
-        calculate the corresponding pose in world coordinates. The parameter yaw is useful, if we want to pick at the
-        given coordinate an object that has the given orientation. For this method to work, it is important that
-        only the workspace of the robot is visible in the image and nothing else. At least for the Niryo robot
-        this is important. This means, (u_rel, v_rel) = (0, 0), is the upper left corner of the workspace.
+        calculate the corresponding pose in world coordinates.
 
         Args:
             workspace_id: id of the workspace
@@ -140,95 +131,33 @@ class NiryoWorkspace(Workspace):
         where the gripper hovers over the workspace. For the niryo robot this is a gripper pose in which the
         gripper mounted camera can observe the complete workspace.
 
-        Supports multiple workspace configurations.
+        Strictly uses configuration data.
         """
-        # Check if config is available and use it
-        if self._config and self._config.observation_pose:
-            self._observation_pose = PoseObjectPNP(
-                x=self._config.observation_pose.x,
-                y=self._config.observation_pose.y,
-                z=self._config.observation_pose.z,
-                roll=self._config.observation_pose.roll,
-                pitch=self._config.observation_pose.pitch,
-                yaw=self._config.observation_pose.yaw,
-            )
-            return
-
-        if self._id == "niryo_ws" or self._id == "niryo_ws2":
-            self._observation_pose = PoseObjectPNP(  # position for the robot to watch the workspace in the real world
-                x=0.173 - 0.0,
-                y=-0.002,
-                z=0.247 + 0.03,
-                roll=-3.042,
-                pitch=1.327 - 0.0,
-                yaw=-3.027,
-            )
-        # Left workspace (for multi-workspace setup)
-        elif self._id == "niryo_ws_left":
-            self._observation_pose = PoseObjectPNP(
-                x=0.173,
-                y=0.10,  # Shifted to the left
-                z=0.277,
-                roll=-3.042,
-                pitch=1.327,
-                yaw=-3.027,
+        if not self._config:
+            raise ValueError(
+                f"No configuration provided for workspace '{self._id}'. " "Initialize with config_path or from_config()."
             )
 
-        # Right workspace (for multi-workspace setup)
-        elif self._id == "niryo_ws_right":
-            self._observation_pose = PoseObjectPNP(
-                x=0.173,
-                y=-0.10,  # Shifted to the right
-                z=0.277,
-                roll=-3.042,
-                pitch=1.327,
-                yaw=-3.027,
-            )
+        if not self._config.observation_pose:
+            raise ValueError(f"No observation pose defined in config for workspace '{self._id}'")
 
-        # Gazebo simulation workspaces
-        elif self._id == "gazebo_1":
-            self._observation_pose = PoseObjectPNP(
-                x=0.18,
-                y=0.0,
-                z=0.36,
-                roll=2.4,
-                pitch=math.pi / 2,
-                yaw=2.4,
-            )
-
-        elif self._id == "gazebo_2":
-            self._observation_pose = PoseObjectPNP(
-                x=0.18,
-                y=0.15,  # Second workspace in simulation
-                z=0.36,
-                roll=2.4,
-                pitch=math.pi / 2,
-                yaw=2.4,
-            )
-
-        elif self._id == "gazebo_1_chocolate_bars":
-            self._observation_pose = PoseObjectPNP(
-                x=0.18,
-                y=0,
-                z=0.36,
-                roll=0.0,
-                pitch=math.pi / 2 + 0.3,
-                yaw=0.0,
-            )
-
-        else:
-            self._observation_pose = None
-            if self._verbose:
-                self._logger.warning(f"No observation pose defined for workspace '{self._id}'")
+        self._observation_pose = PoseObjectPNP(
+            x=self._config.observation_pose.x,
+            y=self._config.observation_pose.y,
+            z=self._config.observation_pose.z,
+            roll=self._config.observation_pose.roll,
+            pitch=self._config.observation_pose.pitch,
+            yaw=self._config.observation_pose.yaw,
+        )
 
     # *** PRIVATE STATIC/CLASS methods ***
 
     # *** PUBLIC properties ***
 
-    def environment(self):
+    def environment(self) -> EnvironmentProtocol:
         return self._environment
 
     # *** PRIVATE variables ***
 
-    _environment = None
-    _logger = None
+    _environment: EnvironmentProtocol = None
+    _logger: logging.Logger = None

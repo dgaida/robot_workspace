@@ -1,18 +1,17 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
 # Defines a workspace where the pick-and-place robot WidowX 250 6DOF can pick or place objects from.
 # Documentation and type definitions are almost final (chatgpt might be able to improve it).
-
 from ..common.logger import log_start_end_cls
-
-from .workspace import Workspace
 from ..objects.pose_object import PoseObjectPNP
-import logging
+from .workspace import Workspace
 
-"""
-TODO: APPLY SAME CHANGES AS niryo_workspace.py:
-1. Add 'config' parameter to __init__
-2. Add from_config() class method
-3. Add config check at beginning of _set_observation_pose()
-"""
+if TYPE_CHECKING:
+    from ..config import WorkspaceConfig
+    from ..protocols import EnvironmentProtocol
 
 
 class WidowXWorkspace(Workspace):
@@ -24,16 +23,24 @@ class WidowXWorkspace(Workspace):
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, workspace_id: str, environment, verbose: bool = False):
+    def __init__(
+        self,
+        workspace_id: str,
+        environment: EnvironmentProtocol,
+        verbose: bool = False,
+        config: WorkspaceConfig | None = None,
+    ) -> None:
         """
         Inits the workspace.
 
         Args:
             workspace_id: id of the workspace
-            environment: object of the Environment class
+            environment: object implementing EnvironmentProtocol
             verbose: enable verbose output
+            config: Optional workspace configuration
         """
         self._environment = environment
+        self._config = config
         self._logger = logging.getLogger("robot_workspace")
 
         super().__init__(workspace_id, verbose)
@@ -42,16 +49,42 @@ class WidowXWorkspace(Workspace):
 
     # *** PUBLIC methods ***
 
-    def transform_camera2world_coords(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> "PoseObjectPNP":
+    @classmethod
+    def from_config(cls, config: WorkspaceConfig, environment: EnvironmentProtocol, verbose: bool = False) -> WidowXWorkspace:
+        """
+        Create WidowXWorkspace from configuration.
+
+        Args:
+            config: WorkspaceConfig instance
+            environment: Environment object
+            verbose: Enable verbose output
+
+        Returns:
+            WidowXWorkspace instance
+        """
+        workspace = cls(config.id, environment, verbose, config)
+
+        # Override observation pose from config if available
+        if config.observation_pose:
+            workspace._observation_pose = PoseObjectPNP(
+                x=config.observation_pose.x,
+                y=config.observation_pose.y,
+                z=config.observation_pose.z,
+                roll=config.observation_pose.roll,
+                pitch=config.observation_pose.pitch,
+                yaw=config.observation_pose.yaw,
+            )
+
+        # Override image shape from config if available
+        if config.image_shape:
+            workspace.set_img_shape(config.image_shape)
+
+        return workspace
+
+    def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Given relative image coordinates [u_rel, v_rel] and optionally an orientation of the point (yaw),
         calculate the corresponding pose in world coordinates.
-
-        For WidowX with a third-person camera, this transformation maps from the camera's view
-        to the robot's base frame. The workspace is defined by calibrated corner markers or
-        predefined bounds.
 
         Args:
             workspace_id: id of the workspace
@@ -62,53 +95,35 @@ class WidowXWorkspace(Workspace):
         Returns:
             PoseObjectPNP: Pose of the point in world coordinates of the robot.
         """
-        if self.verbose():
+        if self.verbose() and self._logger:
             self._logger.debug(
                 f"transform_camera2world_coords input - workspace_id: {workspace_id}, u_rel: {u_rel}, v_rel: {v_rel}, yaw: {yaw}"
             )
 
-        # Use environment transformation if available (like NiryoWorkspace does)
+        # Delegate to environment's transformation if available
         if hasattr(self, "_environment") and self._environment is not None:
-            # Delegate to environment's transformation
             obj_coords = self._environment.get_robot_target_pose_from_rel(workspace_id, u_rel, v_rel, yaw)
-
-            if self.verbose():
-                print("transform_camera2world_coords:", obj_coords)
-
+            if self.verbose() and self._logger:
+                self._logger.debug(f"transform_camera2world_coords output: {obj_coords}")
             return obj_coords
 
-        # For WidowX, we need to handle coordinate transformation differently
-        # since it uses a third-person camera rather than gripper-mounted camera
-
-        # Fallback: Linear interpolation using workspace corners
-        # This path is used when corners are already initialized
+        # Fallback: Linear interpolation using workspace corners or defaults
         if self._xy_ul_wc is not None and self._xy_lr_wc is not None:
-            x_min = self._xy_lr_wc.x  # Lower right (farther from robot)
-            x_max = self._xy_ul_wc.x  # Upper left (closer to robot)
-            y_min = self._xy_lr_wc.y  # Lower right (rightmost)
-            y_max = self._xy_ul_wc.y  # Upper left (leftmost)
+            x_min = self._xy_lr_wc.x
+            x_max = self._xy_ul_wc.x
+            y_min = self._xy_lr_wc.y
+            y_max = self._xy_ul_wc.y
 
-            # Linear interpolation
-            x = x_max - u_rel * (x_max - x_min)  # u_rel: 0 (top) -> 1 (bottom)
-            y = y_max - v_rel * (y_max - y_min)  # v_rel: 0 (left) -> 1 (right)
+            x = x_max - u_rel * (x_max - x_min)
+            y = y_max - v_rel * (y_max - y_min)
         else:
-            # During initialization, use default workspace bounds
-            # These are typical WidowX workspace dimensions
-            x = 0.5 - u_rel * 0.4  # x: 0.5 to 0.1
-            y = 0.2 - v_rel * 0.4  # y: 0.2 to -0.2
+            x = 0.5 - u_rel * 0.4
+            y = 0.2 - v_rel * 0.4
 
-        # Default height above workspace
-        z = 0.05  # 5cm above workspace surface
+        obj_coords = PoseObjectPNP(x, y, 0.05, 0.0, 1.57, yaw)
 
-        # Default orientation for WidowX gripper
-        # Roll and pitch point gripper downward, yaw from parameter
-        roll = 0.0
-        pitch = 1.57  # ~90 degrees (pointing down)
-
-        obj_coords = PoseObjectPNP(x, y, z, roll, pitch, yaw)
-
-        if self.verbose():
-            self._logger.debug(f"transform_camera2world_coords output: {obj_coords}")
+        if self.verbose() and self._logger:
+            self._logger.debug(f"transform_camera2world_coords output (fallback): {obj_coords}")
 
         return obj_coords
 
@@ -120,9 +135,6 @@ class WidowXWorkspace(Workspace):
     def _set_4corners_of_workspace(self) -> None:
         """
         Sets the 4 corners of the workspace using the transform method.
-
-        For WidowX with a third-person camera, these corners are typically
-        calibrated based on the camera's view of the workspace.
         """
         self._xy_ul_wc = self.transform_camera2world_coords(self._id, 0.0, 0.0)
         self._xy_ll_wc = self.transform_camera2world_coords(self._id, 1.0, 0.0)
@@ -138,91 +150,33 @@ class WidowXWorkspace(Workspace):
         """
         Set the variable _observation_pose for the given workspace.
 
-        For WidowX, the observation pose is typically a retracted position
-        where the robot arm is out of the camera's view, allowing clear
-        observation of the workspace.
-
-        Supports multiple workspace configurations.
+        Strictly uses configuration data.
         """
-        if self._id == "widowx_ws" or self._id == "widowx_ws_main":
-            # Main workspace - robot retracted to home position
-            # WidowX 250 typical home pose values
-            self._observation_pose = PoseObjectPNP(
-                x=0.30,  # 30cm forward from base
-                y=0.0,  # Centered
-                z=0.25,  # 25cm above base
-                roll=0.0,
-                pitch=0.0,  # Horizontal orientation for observation
-                yaw=0.0,
+        if not self._config:
+            raise ValueError(
+                f"No configuration provided for workspace '{self._id}'. " "Initialize with config_path or from_config()."
             )
 
-        # Left workspace (for multi-workspace setup)
-        elif self._id == "widowx_ws_left":
-            self._observation_pose = PoseObjectPNP(
-                x=0.30,
-                y=0.15,  # Shifted to the left
-                z=0.25,
-                roll=0.0,
-                pitch=0.0,
-                yaw=0.0,
-            )
+        if not self._config.observation_pose:
+            raise ValueError(f"No observation pose defined in config for workspace '{self._id}'")
 
-        # Right workspace (for multi-workspace setup)
-        elif self._id == "widowx_ws_right":
-            self._observation_pose = PoseObjectPNP(
-                x=0.30,
-                y=-0.15,  # Shifted to the right
-                z=0.25,
-                roll=0.0,
-                pitch=0.0,
-                yaw=0.0,
-            )
-
-        # Simulation workspaces
-        elif self._id == "gazebo_widowx_1":
-            self._observation_pose = PoseObjectPNP(
-                x=0.30,
-                y=0.0,
-                z=0.30,  # Slightly higher in simulation
-                roll=0.0,
-                pitch=0.0,
-                yaw=0.0,
-            )
-
-        elif self._id == "gazebo_widowx_2":
-            self._observation_pose = PoseObjectPNP(
-                x=0.30,
-                y=0.15,  # Second workspace in simulation
-                z=0.30,
-                roll=0.0,
-                pitch=0.0,
-                yaw=0.0,
-            )
-
-        # Extended reach workspace (farther from base)
-        elif self._id == "widowx_ws_extended":
-            self._observation_pose = PoseObjectPNP(
-                x=0.40,  # 40cm forward (near max reach)
-                y=0.0,
-                z=0.20,  # Lower height for extended reach
-                roll=0.0,
-                pitch=0.3,  # Slight downward tilt
-                yaw=0.0,
-            )
-
-        else:
-            self._observation_pose = None
-            if self._verbose:
-                self._logger.warning(f"No observation pose defined for workspace '{self._id}'")
+        self._observation_pose = PoseObjectPNP(
+            x=self._config.observation_pose.x,
+            y=self._config.observation_pose.y,
+            z=self._config.observation_pose.z,
+            roll=self._config.observation_pose.roll,
+            pitch=self._config.observation_pose.pitch,
+            yaw=self._config.observation_pose.yaw,
+        )
 
     # *** PRIVATE STATIC/CLASS methods ***
 
     # *** PUBLIC properties ***
 
-    def environment(self):
+    def environment(self) -> EnvironmentProtocol:
         return self._environment
 
     # *** PRIVATE variables ***
 
-    _environment = None
-    _logger = None
+    _environment: EnvironmentProtocol = None
+    _logger: logging.Logger = None

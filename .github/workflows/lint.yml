@@ -51,7 +51,7 @@ jobs:
       - name: Type check with mypy
         run: |
           mypy robot_workspace --ignore-missing-imports --no-strict-optional
-        continue-on-error: true
+        continue-on-error: false
 
   security:
     runs-on: ubuntu-latest
@@ -73,5 +73,5 @@ jobs:
 
       - name: Run security checks with Bandit
         run: |
-          bandit -r robot_workspace/ -ll -f github
-        continue-on-error: true
+          bandit -r robot_workspace/ -ll
+        continue-on-error: false

@@ -1,21 +1,18 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING
+
+from .widowx_workspace import WidowXWorkspace
+
 # class defining a list of WidowXWorkspace class
 # final, apart from that more workspaces can be added
 # Documentation and type definitions are almost final (chatgpt might be able to improve it).
-
 from .workspaces import Workspaces
-from .widowx_workspace import WidowXWorkspace
-from typing import TYPE_CHECKING, Optional
-import logging
 
 if TYPE_CHECKING:
+    from ..protocols import EnvironmentProtocol
     from .workspace import Workspace
-
-"""
-TODO: APPLY SAME CHANGES AS niryo_workspaces.py:
-1. Add 'config_path' parameter to __init__
-2. Add _init_default() method
-3. Add _init_from_config() method
-"""
 
 
 class WidowXWorkspaces(Workspaces):
@@ -27,45 +24,31 @@ class WidowXWorkspaces(Workspaces):
     gripper-mounted camera.
     """
 
-    def __init__(self, environment, verbose: bool = False):
+    def __init__(
+        self, environment: EnvironmentProtocol, verbose: bool = False, config_path: str = "config/widowx_config.yaml"
+    ) -> None:
         """
-        Adds list of WidowXWorkspace to the list of Workspaces.
+        Initialize WidowXWorkspaces collection from configuration.
 
         Args:
             environment: Environment object
             verbose: Enable verbose output
+            config_path: Path to YAML configuration file. Defaults to 'config/widowx_config.yaml'.
         """
         super().__init__(verbose)
         self._logger = logging.getLogger("robot_workspace")
 
-        if not environment.use_simulation():
-            # Real robot - can define multiple workspaces
-            # WidowX typically has a single main workspace in front of the robot
-            workspace_ids = ["widowx_ws_main"]
-
-            # Optional: Add additional workspaces for multi-workspace setups
-            # workspace_ids = ["widowx_ws_left", "widowx_ws_right"]
-        else:
-            # Simulation - can also have multiple workspaces
-            workspace_ids = ["gazebo_widowx_1", "gazebo_widowx_2"]
-
-        # Add all defined workspaces
-        for workspace_id in workspace_ids:
-            workspace = WidowXWorkspace(workspace_id, environment, verbose)
-            super().append_workspace(workspace)
-
-        if verbose:
-            self._logger.info(f"Initialized {len(self)} WidowX workspaces: {self.get_workspace_ids()}")
+        self._init_from_config(environment, config_path, verbose)
 
     # *** PUBLIC SET methods ***
 
     # *** PUBLIC GET methods ***
 
-    def get_workspace_main(self) -> "Workspace":
+    def get_workspace_main(self) -> Workspace:
         """Get the main workspace (index 0)."""
         return self.get_workspace(0)
 
-    def get_workspace_left(self) -> Optional["Workspace"]:
+    def get_workspace_left(self) -> Workspace | None:
         """
         Get the left workspace (index 0 in multi-workspace setup).
 
@@ -76,7 +59,7 @@ class WidowXWorkspaces(Workspaces):
             return self.get_workspace(0)
         return None
 
-    def get_workspace_right(self) -> Optional["Workspace"]:
+    def get_workspace_right(self) -> Workspace | None:
         """
         Get the right workspace (index 1 in multi-workspace setup).
 
@@ -91,7 +74,7 @@ class WidowXWorkspaces(Workspaces):
         """Get the main workspace ID."""
         return self.get_workspace_id(0)
 
-    def get_workspace_left_id(self) -> Optional[str]:
+    def get_workspace_left_id(self) -> str | None:
         """
         Get the left workspace ID.
 
@@ -102,7 +85,7 @@ class WidowXWorkspaces(Workspaces):
             return self.get_workspace_id(0)
         return None
 
-    def get_workspace_right_id(self) -> Optional[str]:
+    def get_workspace_right_id(self) -> str | None:
         """
         Get the right workspace ID.
 
@@ -119,7 +102,24 @@ class WidowXWorkspaces(Workspaces):
 
     # *** PRIVATE methods ***
 
+    def _init_from_config(self, environment: EnvironmentProtocol, config_path: str, verbose: bool) -> None:
+        """Initialize workspaces from configuration file."""
+        from ..config import ConfigManager
+
+        config_mgr = ConfigManager()
+        config_mgr.load_from_yaml(config_path)
+
+        # Get workspace configs based on simulation mode
+        workspace_configs = config_mgr.get_workspace_configs("widowx", simulation=environment.use_simulation())
+
+        for ws_config in workspace_configs:
+            workspace = WidowXWorkspace.from_config(ws_config, environment, verbose)
+            super().append_workspace(workspace)
+
+        if verbose:
+            self._logger.info(f"Initialized {len(self)} WidowX workspaces from config: {self.get_workspace_ids()}")
+
     # *** PUBLIC properties ***
 
     # *** PRIVATE variables ***
-    _logger = None
+    _logger: logging.Logger = None

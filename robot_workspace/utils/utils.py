@@ -3,12 +3,13 @@ Utility functions for the robot_workspace package.
 Contains helper functions for logging
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 
 # Logging setup
-def setup_logging(verbose: bool = False, log_file: Optional[str] = None) -> logging.Logger:
+def setup_logging(verbose: bool = False, log_file: str | None = None) -> logging.Logger:
     """
     Set up logging configuration for the vision detection system.
     Handles Unicode output gracefully on Windows consoles.

@@ -9,15 +9,17 @@ These tests verify end-to-end workflows and interactions between multiple compon
 - Pick-and-place scenarios
 """
 
-import pytest
-import numpy as np
 import json
 import math
 from unittest.mock import Mock
+
+import numpy as np
+import pytest
+
 from robot_workspace.objects.object import Object
+from robot_workspace.objects.object_api import Location
 from robot_workspace.objects.objects import Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
-from robot_workspace.objects.object_api import Location
 from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 
 
@@ -123,7 +125,7 @@ class TestObjectWorkspaceIntegration:
 
         # Verify center of mass is calculated from mask
         x_com, y_com = obj.xy_com()
-        x_center, y_center = obj.xy_center()
+        _x_center, _y_center = obj.xy_center()
 
         # Center of mass and geometric center may differ with mask
         assert isinstance(x_com, float)
@@ -159,7 +161,7 @@ class TestSpatialQueriesIntegration:
 
     def test_nearest_object_search_accuracy(self, workspace_with_objects):
         """Test nearest object search with real coordinate system."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         # Search from a known location
         search_point = [0.25, 0.0]  # Center of workspace
@@ -181,7 +183,7 @@ class TestSpatialQueriesIntegration:
 
     def test_size_based_queries_integration(self, workspace_with_objects):
         """Test size-based queries with real object dimensions."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         # Get largest and smallest
         largest, largest_size = objects.get_largest_detected_object()
@@ -320,7 +322,7 @@ class TestPickAndPlaceScenarios:
 
     def test_complete_place_workflow(self, workspace_with_objects):
         """Test complete place operation workflow."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         # 1. Pick object
         target = objects[0]
@@ -342,7 +344,7 @@ class TestPickAndPlaceScenarios:
 
     def test_pick_and_place_with_rotation(self, workspace_with_objects):
         """Test pick-and-place with object rotation."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         target = objects[0]
 
@@ -468,7 +470,7 @@ class TestComplexWorkflows:
 
     def test_object_grouping_and_batch_operations(self, workspace_with_objects):
         """Test grouping objects and performing batch operations."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         # Group objects by size category
         small_objects = Objects()
@@ -498,7 +500,7 @@ class TestComplexWorkflows:
 
     def test_llm_integration_workflow(self, workspace_with_objects):
         """Test workflow for LLM integration."""
-        workspace, objects = workspace_with_objects
+        _workspace, objects = workspace_with_objects
 
         # 1. Generate scene description for LLM
         scene_description = []

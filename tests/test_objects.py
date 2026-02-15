@@ -2,12 +2,14 @@
 Unit tests for Objects class (collection of Object instances)
 """
 
-import pytest
 from unittest.mock import Mock
-from robot_workspace.objects.objects import Objects
-from robot_workspace.objects.object import Object
-from robot_workspace.objects.pose_object import PoseObjectPNP
+
+import pytest
+
 from robot_workspace import Location
+from robot_workspace.objects.object import Object
+from robot_workspace.objects.objects import Objects
+from robot_workspace.objects.pose_object import PoseObjectPNP
 
 
 @pytest.fixture
@@ -159,7 +161,7 @@ class TestObjects:
         """Test finding nearest object with specific label"""
         objects = Objects(sample_objects)
 
-        nearest, distance = objects.get_nearest_detected_object([0.2, 0.0], label="pen")
+        nearest, _distance = objects.get_nearest_detected_object([0.2, 0.0], label="pen")
 
         assert nearest is not None
         assert nearest.label() == "pen"
@@ -260,11 +262,11 @@ class TestObjects:
         assert isinstance(obj_dict, dict)
 
         # Test get_largest_detected_object with serializable=True
-        largest_dict, size = objects.get_largest_detected_object(serializable=True)
+        largest_dict, _ = objects.get_largest_detected_object(serializable=True)
         assert isinstance(largest_dict, dict)
 
         # Test get_smallest_detected_object with serializable=True
-        smallest_dict, size = objects.get_smallest_detected_object(serializable=True)
+        smallest_dict, _size = objects.get_smallest_detected_object(serializable=True)
         assert isinstance(smallest_dict, dict)
 
         # Test get_detected_objects_sorted with serializable=True
