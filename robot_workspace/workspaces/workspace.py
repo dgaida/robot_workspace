@@ -259,26 +259,26 @@ class Workspace(ABC):
     # _environment = None
 
     # (x, y, z) coordinate of upper left corner of workspace in world coordinates in meter
-    _xy_ul_wc: PoseObjectPNP = None  # type: ignore
+    _xy_ul_wc: PoseObjectPNP = None
     # (x, y, z) coordinate of lower left corner of workspace in world coordinates in meter
-    _xy_ll_wc: PoseObjectPNP = None  # type: ignore
+    _xy_ll_wc: PoseObjectPNP = None
     # (x, y, z) coordinate of upper right corner of workspace in world coordinates in meter
-    _xy_ur_wc: PoseObjectPNP = None  # type: ignore
+    _xy_ur_wc: PoseObjectPNP = None
     # (x, y, z) coordinate of lower right corner of workspace in world coordinates in meter
-    _xy_lr_wc: PoseObjectPNP = None  # type: ignore
+    _xy_lr_wc: PoseObjectPNP = None
 
     # center pose of the workspace
-    _xy_center_wc: PoseObjectPNP = None  # type: ignore
+    _xy_center_wc: PoseObjectPNP = None
 
     # width and height of workspace in meter
     _width_m: float = 0.0
     _height_m: float = 0.0
 
     # size of robot's workspace in the camera image in pixels
-    _img_shape: tuple[int, int, int] = None  # type: ignore
+    _img_shape: tuple[int, int, int] = None
 
     # pose of robot arm when it hovers over the workspace.
-    _observation_pose: PoseObjectPNP = None  # type: ignore
+    _observation_pose: PoseObjectPNP = None
 
     _verbose: bool = False
-    _logger: logging.Logger = None  # type: ignore
+    _logger: logging.Logger = None

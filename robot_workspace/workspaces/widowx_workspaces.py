@@ -122,4 +122,4 @@ class WidowXWorkspaces(Workspaces):
     # *** PUBLIC properties ***
 
     # *** PRIVATE variables ***
-    _logger: logging.Logger = None  # type: ignore
+    _logger: logging.Logger = None

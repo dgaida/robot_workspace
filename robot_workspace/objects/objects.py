@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from ..workspaces.workspace import Workspace
 
 
-class Objects(list):
+class Objects(list[Object]):
     """
     A class representing a list of Object instances. Objects are stored in VisualCortex class and therefore are not
     real things, but just seen from a camera.
@@ -68,7 +68,8 @@ class Objects(list):
         detected_objects = self.get_detected_objects(Location.CLOSE_TO, coordinate, label)
 
         if detected_objects:
-            return detected_objects[0].to_dict() if serializable else detected_objects[0]
+            res: Object | dict[str, Any] = detected_objects[0].to_dict() if serializable else detected_objects[0]
+            return res
         else:
             return None
 
@@ -214,7 +215,10 @@ class Objects(list):
 
         size = largest_object.size_m2()
 
-        return (Object.to_dict(largest_object), size) if serializable else (largest_object, size)
+        if serializable:
+            return largest_object.to_dict(), size
+        else:
+            return largest_object, size
 
     def get_smallest_detected_object(self, serializable: bool = False) -> tuple[Object, float] | tuple[dict[str, Any], float]:
         """
@@ -229,7 +233,10 @@ class Objects(list):
 
         size = smallest_object.size_m2()
 
-        return (Object.to_dict(smallest_object), size) if serializable else (smallest_object, size)
+        if serializable:
+            return smallest_object.to_dict(), size
+        else:
+            return smallest_object, size
 
     def get_detected_objects_sorted(
         self, ascending: bool = True, serializable: bool = False
@@ -246,7 +253,10 @@ class Objects(list):
         """
         sorted_objs = Objects(sorted(self, key=lambda obj: obj.size_m2(), reverse=not ascending))
 
-        return Objects.objects_to_dict_list(sorted_objs) if serializable else sorted_objs
+        if serializable:
+            return Objects.objects_to_dict_list(sorted_objs)
+        else:
+            return sorted_objs
 
     # *** PUBLIC methods ***
 
@@ -255,7 +265,7 @@ class Objects(list):
     # *** HELPER METHODE FÜR REDIS PUBLISHER ***
 
     @staticmethod
-    def objects_to_dict_list(objects: Objects) -> list[dict[str, Any]]:
+    def objects_to_dict_list(objects: list[Object]) -> list[dict[str, Any]]:
         """
         Converts a list of Object instances to a list of dictionaries.
 

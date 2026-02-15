@@ -1,6 +1,15 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import json
+import logging
+import math
+import time
 from typing import TYPE_CHECKING, Any
+
+import cv2
+import numpy as np
 
 # Class defining an object. An object has pixel coordinates as well as world coordinates.
 # a TODO, but more or less finished
@@ -11,15 +20,6 @@ from .object_api import ObjectAPI
 if TYPE_CHECKING:
     from ..workspaces.workspace import Workspace
     from .pose_object import PoseObjectPNP
-import base64
-import hashlib
-import json
-import logging
-import math
-import time
-
-import cv2
-import numpy as np
 
 
 class Object(ObjectAPI):
@@ -384,9 +384,6 @@ class Object(ObjectAPI):
         Returns:
             str: Unique object identifier
         """
-
-        # import uuid
-
         # Option 1: Hash-based ID (deterministic)
         id_string = f"{self._label}_{self.x_com():.3f}_{self.y_com():.3f}_{time.time()}"
         return hashlib.md5(id_string.encode(), usedforsecurity=False).hexdigest()[:8]
@@ -474,7 +471,7 @@ class Object(ObjectAPI):
                 mask_8u = cls._deserialize_mask(data["mask_data"], data["mask_shape"], data.get("mask_dtype", "uint8"))
 
             # Create object
-            obj = cls(
+            obj = Object(
                 label=data["label"],
                 u_min=u_min,
                 v_min=v_min,
@@ -1086,8 +1083,12 @@ class Object(ObjectAPI):
     _gripper_rotation: float = 0.0
 
     # workspace this object can be found in
-    _workspace: Workspace = None  # type: ignore
+    _workspace: Workspace = None
 
     _original_mask_8u: np.ndarray | None = None
 
     _verbose: bool = False
+
+    # Additional metadata
+    _confidence: float = 1.0
+    _class_id: int = 0

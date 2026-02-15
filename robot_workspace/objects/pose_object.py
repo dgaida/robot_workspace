@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 from pyniryo.api.objects import PoseObject
@@ -31,7 +32,15 @@ class PoseObjectPNP:
     """
 
     # *** CONSTRUCTORS ***
-    def __init__(self, x=0.0, y=0.0, z=0.0, roll=0.0, pitch=0.0, yaw=0.0) -> None:
+    def __init__(
+        self,
+        x: float = 0.0,
+        y: float = 0.0,
+        z: float = 0.0,
+        roll: float = 0.0,
+        pitch: float = 0.0,
+        yaw: float = 0.0,
+    ) -> None:
         # X (meter)
         self.x = float(x)
         # Y (meter)
@@ -71,7 +80,9 @@ class PoseObjectPNP:
         yaw = self.yaw - other.yaw
         return PoseObjectPNP(x, y, z, roll, pitch, yaw)
 
-    def __eq__(self, other: PoseObjectPNP) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PoseObjectPNP):
+            return NotImplemented
         return (
             self.x == other.x
             and self.y == other.y
@@ -126,7 +137,13 @@ class PoseObjectPNP:
         return bool(abs(self.x - other.x) < eps and abs(self.y - other.y) < eps and abs(self.z - other.z) < eps)
 
     def copy_with_offsets(
-        self, x_offset=0.0, y_offset=0.0, z_offset=0.0, roll_offset=0.0, pitch_offset=0.0, yaw_offset=0.0
+        self,
+        x_offset: float = 0.0,
+        y_offset: float = 0.0,
+        z_offset: float = 0.0,
+        roll_offset: float = 0.0,
+        pitch_offset: float = 0.0,
+        yaw_offset: float = 0.0,
     ) -> PoseObjectPNP:
         """
         Creates a new pose object by copying the current pose and applying specified offsets
@@ -152,7 +169,7 @@ class PoseObjectPNP:
             self.yaw + yaw_offset,
         )
 
-    def to_list(self) -> list[float, float, float, float, float, float]:
+    def to_list(self) -> list[float]:
         """
         Return a list [x, y, z, roll, pitch, yaw] corresponding to the pose's parameters
 
@@ -196,28 +213,28 @@ class PoseObjectPNP:
         return transformation_matrix
 
     @property
-    def quaternion(self) -> list[float, float, float, float]:
+    def quaternion(self) -> list[float]:
         """
         Return the quaternion in a list [qx, qy, qz, qw]
 
         :return: quaternion [qx, qy, qz, qw]
-        :rtype: list[float, float, float, float]
+        :rtype: list[float]
         """
         return self.euler_to_quaternion(self.roll, self.pitch, self.yaw)
 
     @property
-    def quaternion_pose(self) -> list[float, float, float, float, float, float, float]:
+    def quaternion_pose(self) -> list[float]:
         """
         Return the position and the quaternion in a list [x, y, z, qx, qy, qz, qw]
 
         :return: position [x, y, z] + quaternion [qx, qy, qz, qw]
-        :rtype: list[float, float, float, float, float, float, float]
+        :rtype: list[float]
 
         """
         return [self.x, self.y, self.z, *list(self.euler_to_quaternion(self.roll, self.pitch, self.yaw))]
 
     @staticmethod
-    def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float, float, float, float]:
+    def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> list[float]:
         """
         Convert euler angles to quaternion
 
@@ -228,14 +245,14 @@ class PoseObjectPNP:
         :param yaw: yaw in radians
         :type yaw: float
         :return: quaternion in a list [qx, qy, qz, qw]
-        :rtype: list[float, float, float, float]
+        :rtype: list[float]
         """
         qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
         qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2)
         qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2)
         qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(yaw / 2)
 
-        return [qx, qy, qz, qw]
+        return [float(qx), float(qy), float(qz), float(qw)]
 
     @staticmethod
     def quaternion_to_euler_angle(qx: float, qy: float, qz: float, qw: float) -> tuple[float, float, float]:
@@ -251,7 +268,7 @@ class PoseObjectPNP:
         :param qw:
         :type qw: float
         :return: euler angles in a list [roll, pitch, yaw]
-        :rtype: list[float, float, float]
+        :rtype: list[float]
         """
         ysqr = qy * qy
 
@@ -268,7 +285,7 @@ class PoseObjectPNP:
         t4 = +1.0 - 2.0 * (ysqr + qz * qz)
         yaw = np.arctan2(t3, t4)
 
-        return roll, pitch, yaw
+        return float(roll), float(pitch), float(yaw)
 
     # *** PUBLIC GET methods ***
 
@@ -277,35 +294,37 @@ class PoseObjectPNP:
     # *** PUBLIC STATIC/CLASS GET methods ***
 
     @staticmethod
-    def convert_niryo_pose_object2pose_object(pose_object: PoseObject) -> PoseObjectPNP:
+    def convert_niryo_pose_object2pose_object(pose_object: Any) -> PoseObjectPNP:
         """
-        Converts a PoseObject from Niryo class to a pnp_robot_genai.pose_object.PoseObject object. The latter is
-        a copy of the first.
+        Converts a PoseObject from Niryo class to a PoseObjectPNP object.
 
         Args:
-            pose_object: PoseObject
+            pose_object: PoseObject from Niryo
 
         Returns:
-            pnp_robot_genai.pose_object.PoseObject
+            PoseObjectPNP
         """
-        # print("pose_object", pose_object)
-        pose = PoseObjectPNP(pose_object.x, pose_object.y, pose_object.z, pose_object.roll, pose_object.pitch, pose_object.yaw)
-        # print("pose", pose)
-        return pose
+        return PoseObjectPNP(
+            float(pose_object.x),
+            float(pose_object.y),
+            float(pose_object.z),
+            float(pose_object.roll),
+            float(pose_object.pitch),
+            float(pose_object.yaw),
+        )
 
     @staticmethod
-    def convert_pose_object2niryo_pose_object(pose_object: PoseObject) -> PoseObjectPNP:
+    def convert_pose_object2niryo_pose_object(pose_object: PoseObjectPNP) -> Any:
         """
-        Convert a pnp_robot_genai.pose_object.PoseObject to a PoseObject from Niryo Robot
+        Convert a PoseObjectPNP to a PoseObject from Niryo Robot
 
         Args:
-            pose_object: pnp_robot_genai.pose_object.PoseObject
+            pose_object: PoseObjectPNP
 
         Returns:
             PoseObject: Pose object that the Niryo robot defines
         """
-        pose = PoseObject(pose_object.x, pose_object.y, pose_object.z, pose_object.roll, pose_object.pitch, pose_object.yaw)
-        return pose
+        return PoseObject(pose_object.x, pose_object.y, pose_object.z, pose_object.roll, pose_object.pitch, pose_object.yaw)
 
     # *** PRIVATE methods ***
 

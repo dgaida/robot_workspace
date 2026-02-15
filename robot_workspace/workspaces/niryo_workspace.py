@@ -159,5 +159,5 @@ class NiryoWorkspace(Workspace):
 
     # *** PRIVATE variables ***
 
-    _environment: EnvironmentProtocol = None  # type: ignore
-    _logger: logging.Logger = None  # type: ignore
+    _environment: EnvironmentProtocol = None
+    _logger: logging.Logger = None
