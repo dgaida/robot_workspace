@@ -34,7 +34,6 @@ theme:
 plugins:
   - search
   - i18n:
-      default_language: de
       languages:
         - locale: de
           name: Deutsch

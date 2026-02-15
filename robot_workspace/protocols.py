@@ -21,9 +21,7 @@ class EnvironmentProtocol(Protocol):
         """Returns whether verbose logging is enabled."""
         ...
 
-    def get_robot_target_pose_from_rel(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> PoseObjectPNP:
+    def get_robot_target_pose_from_rel(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Calculates the target pose from relative coordinates.
 
@@ -50,9 +48,7 @@ class WorkspaceProtocol(Protocol):
         """Returns the image shape of the workspace."""
         ...
 
-    def transform_camera2world_coords(
-        self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0
-    ) -> PoseObjectPNP:
+    def transform_camera2world_coords(self, workspace_id: str, u_rel: float, v_rel: float, yaw: float = 0.0) -> PoseObjectPNP:
         """
         Transforms camera relative coordinates to world coordinates.
 
