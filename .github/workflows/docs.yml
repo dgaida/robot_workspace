@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[all,docs]
+          pip install .[dev,docs,niryo]
           pip install git-cliff interrogate
 
       - name: Check API Documentation Coverage

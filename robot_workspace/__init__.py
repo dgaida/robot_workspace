@@ -15,12 +15,12 @@ from .workspaces.widowx_workspaces import WidowXWorkspaces
 from .workspaces.workspace import Workspace
 
 __all__ = [
-    "Object",
     "Location",
-    "Objects",
-    "PoseObjectPNP",
     "NiryoWorkspace",
     "NiryoWorkspaces",
+    "Object",
+    "Objects",
+    "PoseObjectPNP",
     "WidowXWorkspace",
     "WidowXWorkspaces",
     "Workspace",
