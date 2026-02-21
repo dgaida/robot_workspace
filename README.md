@@ -1,5 +1,6 @@
 # Robot Workspace
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/dgaida/robot_workspace)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/dgaida/robot_workspace/branch/master/graph/badge.svg)](https://codecov.io/gh/dgaida/robot_workspace)
