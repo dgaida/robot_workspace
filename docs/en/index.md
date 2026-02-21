@@ -405,4 +405,4 @@ This package is part of a larger ecosystem for robotic manipulation and AI-drive
 **Author**: Daniel Gaida
 **Email**: daniel.gaida@th-koeln.de
 **Repository**: https://github.com/dgaida/robot_workspace
-**Version**: 0.1.0
+**Version**: 0.1.1
