@@ -38,10 +38,9 @@ plugins:
         - locale: de
           name: Deutsch
           default: true
-          build: true
         - locale: en
           name: English
-          build: true
+      docs_structure: folder
   - mkdocstrings:
       handlers:
         python:
@@ -54,7 +53,7 @@ plugins:
       arguments:
         theme: forest
   - mike:
-      alias_type: symlink
+      alias_type: redirect
 
 markdown_extensions:
   - admonition

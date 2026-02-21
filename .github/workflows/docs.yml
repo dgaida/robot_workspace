@@ -61,6 +61,12 @@ jobs:
           elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
             # Master branch as 'dev' version
             mike deploy --push dev
+            # Set default version to latest if it exists, otherwise to dev
+            if mike list | grep -q "latest"; then
+              mike set-default --push latest
+            else
+              mike set-default --push dev
+            fi
           fi
 
       - name: Build Documentation (PR check)
