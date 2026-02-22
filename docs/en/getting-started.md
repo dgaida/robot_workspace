@@ -622,6 +622,6 @@ robot_workspace/
 
 ---
 
-**Version**: 0.1.3
+**Version**: 0.1.4
 **Author**: Daniel Gaida
 **Last Updated**: December 2024
