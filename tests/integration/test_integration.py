@@ -311,7 +311,7 @@ class TestPickAndPlaceScenarios:
         pickup_rotation = target.gripper_rotation()
 
         # 3. Verify pose is within workspace bounds
-        assert workspace.xy_ll_wc().x <= pickup_pose.x <= workspace.xy_ul_wc().x
+        assert workspace.xy_lr_wc().x <= pickup_pose.x <= workspace.xy_ul_wc().x
         assert workspace.xy_lr_wc().y <= pickup_pose.y <= workspace.xy_ul_wc().y
 
         # 4. Verify gripper orientation
@@ -465,7 +465,7 @@ class TestComplexWorkflows:
         assert len(scan_points) == 9
 
         for pose in scan_points:
-            assert workspace.xy_ll_wc().x <= pose.x <= workspace.xy_ul_wc().x
+            assert workspace.xy_lr_wc().x <= pose.x <= workspace.xy_ul_wc().x
             assert workspace.xy_lr_wc().y <= pose.y <= workspace.xy_ul_wc().y
 
     def test_object_grouping_and_batch_operations(self, workspace_with_objects):
