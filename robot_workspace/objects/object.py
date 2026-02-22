@@ -197,6 +197,7 @@ class Object(ObjectAPI):
 
         # 5. Override calculated pose with exact provided pose
         self._pose_com = pose_com
+        self._gripper_rotation = pose_com.yaw
 
     def _calculate_translation(self, target_pose: PoseObjectPNP) -> tuple[int, int]:
         """
