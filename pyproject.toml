@@ -96,7 +96,7 @@ include = ["robot_workspace*"]
 exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]
-robot_workspace = ["py.typed"]
+robot_workspace = ["py.typed", "config/*.yaml"]
 
 [tool.black]
 line-length = 127

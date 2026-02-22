@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..config import ConfigManager
 from .widowx_workspace import WidowXWorkspace
 
 # class defining a list of WidowXWorkspace class
@@ -106,7 +108,11 @@ class WidowXWorkspaces(Workspaces):
 
     def _init_from_config(self, environment: EnvironmentProtocol, config_path: str, verbose: bool) -> None:
         """Initialize workspaces from configuration file."""
-        from ..config import ConfigManager
+        if not Path(config_path).exists():
+            # Try to find it relative to this package
+            bundled_path = Path(__file__).parent.parent / "config" / Path(config_path).name
+            if bundled_path.exists():
+                config_path = str(bundled_path)
 
         config_mgr = ConfigManager()
         config_mgr.load_from_yaml(config_path)
