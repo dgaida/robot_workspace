@@ -3,19 +3,22 @@ Additional unit tests for workspaces to increase coverage.
 """
 
 from unittest.mock import Mock, patch
+
 import pytest
+
+from robot_workspace.config import PoseConfig, WorkspaceConfig
+from robot_workspace.objects.pose_object import PoseObjectPNP
 from robot_workspace.workspaces.niryo_workspace import NiryoWorkspace
 from robot_workspace.workspaces.niryo_workspaces import NiryoWorkspaces
 from robot_workspace.workspaces.widowx_workspace import WidowXWorkspace
 from robot_workspace.workspaces.widowx_workspaces import WidowXWorkspaces
 from robot_workspace.workspaces.workspace import Workspace
 from robot_workspace.workspaces.workspaces import Workspaces
-from robot_workspace.config import WorkspaceConfig, PoseConfig
-from robot_workspace.objects.pose_object import PoseObjectPNP
 
 
 class ConcreteWorkspace(Workspace):
     """Concrete implementation of Workspace for testing abstract class methods."""
+
     def __init__(self, workspace_id, verbose=False):
         # We need to set these BEFORE super().__init__ calls methods that use them,
         # but Workspace.__init__ calls them directly.
@@ -32,8 +35,10 @@ class ConcreteWorkspace(Workspace):
 
     def _set_4corners_of_workspace(self) -> None:
         pass
+
     def _set_observation_pose(self) -> None:
         pass
+
     def transform_camera2world_coords(self, workspace_id, u_rel, v_rel, yaw=0.0):
         return PoseObjectPNP(0, 0, 0, 0, 0, 0)
 
@@ -49,11 +54,7 @@ def mock_env():
 
 @pytest.fixture
 def widowx_config():
-    return WorkspaceConfig(
-        id="test_ws",
-        observation_pose=PoseConfig(x=0.3, y=0, z=0.25),
-        image_shape=(640, 480, 3)
-    )
+    return WorkspaceConfig(id="test_ws", observation_pose=PoseConfig(x=0.3, y=0, z=0.25), image_shape=(640, 480, 3))
 
 
 def test_niryo_workspaces_edge_cases(mock_env):
@@ -106,6 +107,7 @@ def test_widowx_workspace_fallback(mock_env, widowx_config):
     # Test verbose fallback
     ws._verbose = True
     import logging
+
     ws._logger = logging.getLogger("robot_workspace")
     with patch.object(ws._logger, "debug") as mock_debug:
         ws.transform_camera2world_coords("test_ws", 0.5, 0.5)
@@ -133,8 +135,9 @@ def test_widowx_workspaces_more_coverage(mock_env):
     mock_ws = Mock()
     mock_ws.id.return_value = "widowx_ws_left"
     # We need to ensure get_workspace_id(0) returns one of the strings
-    with patch.object(workspaces, "get_workspace_id", return_value="widowx_ws_left"), \
-         patch.object(workspaces, "get_workspace", return_value=mock_ws):
+    with patch.object(workspaces, "get_workspace_id", return_value="widowx_ws_left"), patch.object(
+        workspaces, "get_workspace", return_value=mock_ws
+    ):
         assert workspaces.get_workspace_left() == mock_ws
         assert workspaces.get_workspace_left_id() == "widowx_ws_left"
 
@@ -154,6 +157,7 @@ def test_workspace_base_missing_obs_pose():
     # Test verbose is_visible
     ws._verbose = True
     import logging
+
     ws._logger = logging.getLogger("robot_workspace")
     with patch.object(ws._logger, "debug") as mock_debug:
         ws.is_visible(PoseObjectPNP(0, 0, 0, 0, 0, 0))
@@ -163,7 +167,7 @@ def test_workspace_base_missing_obs_pose():
 def test_workspace_calc_center_error():
     """Test _calc_center_of_workspace error case."""
     ws = ConcreteWorkspace("test_ws")
-    ws._xy_ll_wc = None # Trigger error
+    ws._xy_ll_wc = None  # Trigger error
 
     with pytest.raises(ValueError, match="Workspace corners must be set"):
         ws._calc_center_of_workspace()

@@ -3,9 +3,8 @@ Additional unit tests for utils to increase coverage.
 """
 
 import logging
-import sys
 from unittest.mock import MagicMock, patch
-import pytest
+
 from robot_workspace.utils.utils import setup_logging
 
 
@@ -17,8 +16,7 @@ def test_setup_logging_windows_encoding():
     # We need to mock sys.stdout.buffer as well because io.TextIOWrapper uses it
     mock_stdout.buffer = MagicMock()
 
-    with patch("sys.stdout", mock_stdout), \
-         patch("io.TextIOWrapper") as mock_wrapper:
+    with patch("sys.stdout", mock_stdout), patch("io.TextIOWrapper") as mock_wrapper:
         # Reset the logger to ensure we hit the initialization code
         logger = logging.getLogger("robot_workspace")
         for handler in logger.handlers[:]:
@@ -68,8 +66,6 @@ def test_setup_logging_already_initialized():
     logger = logging.getLogger("robot_workspace")
     if not logger.handlers:
         setup_logging()
-
-    initial_level = logger.level
 
     # Call again with different verbosity
     setup_logging(verbose=True)

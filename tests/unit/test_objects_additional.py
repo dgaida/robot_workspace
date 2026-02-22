@@ -2,12 +2,14 @@
 Additional unit tests for objects to increase coverage.
 """
 
-from unittest.mock import Mock, patch
-import pytest
-import numpy as np
 import json
+from unittest.mock import Mock, patch
+
+import numpy as np
+import pytest
+
 from robot_workspace.objects.object import Object
-from robot_workspace.objects.objects import Objects, Location
+from robot_workspace.objects.objects import Location, Objects
 from robot_workspace.objects.pose_object import PoseObjectPNP
 
 
@@ -36,9 +38,7 @@ def test_object_from_dict_missing_img_shape(mock_workspace):
     mock_workspace.img_shape.return_value = None
     data = {
         "label": "cube",
-        "image_coordinates": {
-            "bounding_box_rel": {"u_min": 0.1, "v_min": 0.1, "u_max": 0.2, "v_max": 0.2}
-        }
+        "image_coordinates": {"bounding_box_rel": {"u_min": 0.1, "v_min": 0.1, "u_max": 0.2, "v_max": 0.2}},
     }
     # Object.from_dict returns None on error
     assert Object.from_dict(data, mock_workspace) is None
@@ -46,10 +46,9 @@ def test_object_from_dict_missing_img_shape(mock_workspace):
 
 def test_object_from_json(mock_workspace):
     """Test Object.from_json success and failure."""
-    valid_json = json.dumps({
-        "label": "cube",
-        "image_coordinates": {"bounding_box_rel": {"u_min": 0, "v_min": 0, "u_max": 0.1, "v_max": 0.1}}
-    })
+    valid_json = json.dumps(
+        {"label": "cube", "image_coordinates": {"bounding_box_rel": {"u_min": 0, "v_min": 0, "u_max": 0.1, "v_max": 0.1}}}
+    )
     obj = Object.from_json(valid_json, mock_workspace)
     assert obj is not None
     assert obj.label() == "cube"
@@ -119,12 +118,13 @@ def test_objects_filter_missing_coordinate():
 def test_objects_filter_unknown_location():
     """Test Objects.get_detected_objects with unknown location."""
     objs = Objects()
-    with patch("builtins.print") as mock_print:
-        with patch("robot_workspace.objects.objects.Location.convert_str2location") as mock_conv:
-            mock_conv.return_value = "UNKNOWN"
-            result = objs.get_detected_objects(location="SOME_STR", coordinate=(0, 0))
-            assert len(result) == 0
-            mock_print.assert_called()
+    with patch("builtins.print") as mock_print, patch(
+        "robot_workspace.objects.objects.Location.convert_str2location"
+    ) as mock_conv:
+        mock_conv.return_value = "UNKNOWN"
+        result = objs.get_detected_objects(location="SOME_STR", coordinate=(0, 0))
+        assert len(result) == 0
+        mock_print.assert_called()
 
 
 def test_pose_object_eq_not_implemented():

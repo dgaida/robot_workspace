@@ -2,7 +2,6 @@
 Additional unit tests for ConfigManager to increase coverage.
 """
 
-import pytest
 from robot_workspace.config import ConfigManager
 
 
