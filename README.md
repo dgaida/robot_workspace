@@ -1,6 +1,6 @@
 # Robot Workspace
 
-[![Version](https://img.shields.io/badge/version-0.1.6-blue.svg)](https://github.com/dgaida/robot_workspace)
+[[![Version](https://img.shields.io/github/v/tag/dgaida/robot_workspace?label=version)](https://github.com/dgaida/robot_workspace/tags)](https://github.com/dgaida/robot_workspace)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/dgaida/robot_workspace/branch/master/graph/badge.svg)](https://codecov.io/gh/dgaida/robot_workspace)
@@ -9,6 +9,9 @@
 [![CodeQL](https://github.com/dgaida/robot_workspace/actions/workflows/codeql.yml/badge.svg)](https://github.com/dgaida/robot_workspace/actions/workflows/codeql.yml)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://dgaida.github.io/robot_workspace/)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/dgaida/robot_workspace/graphs/commit-activity)
+![Last commit](https://img.shields.io/github/last-commit/dgaida/robot_workspace)
 
 A Python framework that bridges the gap between camera images and physical robot manipulation. It provides the essential data structures and coordinate transformations needed to convert detected objects from vision systems into actionable pick-and-place targets for robotic arms. The framework handles workspace calibration, object representation with physical properties, and spatial reasoning—enabling vision-equipped robots to understand "where" objects are and "how" to grasp them in real-world coordinates.
 
